@@ -57,6 +57,7 @@ export class Game extends Scene
             client.on('allplayers', (players: { id: string, x: number, y: number }[]) => {
                 players.forEach((p) => {
                     this.addNewPlayer(p.id, p.x, p.y);
+                    console.log("111",p.id);
                 });
             });
     
@@ -68,6 +69,7 @@ export class Game extends Scene
             // (c) 특정 플레이어가 이동했을 때
             client.on('move', (player: { id: string, x: number, y: number }) => {
                 this.movePlayer(player.id, player.x, player.y);
+                console.log("move",player.id);
             });
     
             // (d) 플레이어가 떠났을 때
@@ -81,7 +83,7 @@ export class Game extends Scene
         // 이미 존재하면 무시
         if (this.playerMap[id]) return;
 
-        const sprite = this.add.sprite(x, y, 'star'); // 예: star.png
+        const sprite = this.add.sprite(x, y, 'human'); // 예: star.png
         sprite.setTint(Math.random() * 0xffffff);     // 임의 색상(예시)
 
         this.playerMap[id] = sprite;

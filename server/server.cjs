@@ -36,6 +36,7 @@ io.on('connection', (socket) => {
       return { id, x: players[id].x, y: players[id].y };
     });
     socket.emit('allplayers', allPlayersArr);
+    console.log('allplayers', allPlayersArr);
 
     // 2) 다른 모든 플레이어에게 새 플레이어 정보 전송
     socket.broadcast.emit('newplayer', { id: socket.id, ...players[socket.id] });
