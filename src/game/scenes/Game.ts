@@ -81,7 +81,7 @@ export class Game extends Scene
         // 이미 존재하면 무시
         if (this.playerMap[id]) return;
 
-        const sprite = this.add.sprite(x, y, 'human'); // 예: star.png
+        const sprite = this.add.sprite(x, y, 'star'); // 예: star.png
         sprite.setTint(Math.random() * 0xffffff);     // 임의 색상(예시)
 
         this.playerMap[id] = sprite;
