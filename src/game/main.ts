@@ -9,10 +9,20 @@ import { Preloader } from './scenes/Preloader';
 //  https://newdocs.phaser.io/docs/3.70.0/Phaser.Types.Core.GameConfig
 const config: Phaser.Types.Core.GameConfig = {
     type: AUTO,
-    width: 1024,
-    height: 768,
+    width: 800,
+    height: 800,
+    physics: {
+        default: 'arcade', // arcade만 사용
+        arcade: {
+            debug: false,
+            gravity: { x: 0, y: 0 }
+        }
+    },
     parent: 'game-container',
-    backgroundColor: '#028af8',
+    backgroundColor: '#000000',
+    input: {
+        keyboard: true
+    },
     scene: [
         Boot,
         Preloader,

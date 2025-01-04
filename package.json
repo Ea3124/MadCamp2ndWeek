@@ -40,6 +40,8 @@
     },
     "type": "module",
     "dependencies": {
-        "phaser": "^3.87.0"
+        "cookie": "^1.0.2",
+        "phaser": "^3.87.0",
+        "phaser-matter-collision-plugin": "^1.0.0"
     }
 }

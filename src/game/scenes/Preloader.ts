@@ -34,13 +34,34 @@ export class Preloader extends Scene
 
         this.load.image('logo', 'logo.png');
         this.load.image('star', 'star.png');
+        // this.load.spritesheet('player', 'star.png', {
+        //     frameWidth: 20, // 각 프레임의 너비
+        //     frameHeight: 20, // 각 프레임의 높이
+        // });
+
+        this.load.atlas(
+            'princess',
+            'images/princess.png',
+            'images/princess_atlas.json'
+        );
+        this.load.image('tile1', 'images/IceTileset.png');
+        this.load.image('tile2', 'images/tf_winter_tileA2.png');
+        this.load.image('tile3', 'images/tf_winter_tileA5_cave.png');
+        this.load.image('tile4', 'images/tf_winter_tileB.png');
+        this.load.image('tile5', 'images/tf_winter_tileD.png');
+
+        this.load.tilemapTiledJSON('map', 'images/real_map2.json');
+        
+
+        console.log('Load tilemap in preloader well');
     }
 
     create ()
     {
         //  When all the assets have loaded, it's often worth creating global objects here that the rest of the game can use.
         //  For example, you can define global animations here, so we can use them in other scenes.
-
+        
+        console.log('All assets loaded, transitioning to MainMenu.');
         //  Move to the MainMenu. You could also swap this for a Scene Transition, such as a camera fade.
         this.scene.start('MainMenu');
     }

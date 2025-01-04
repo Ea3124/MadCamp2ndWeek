@@ -1,11 +1,14 @@
 import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
+import Phaser from 'phaser';
 
 export class Game extends Scene
 {
     camera: Phaser.Cameras.Scene2D.Camera;
     background: Phaser.GameObjects.Image;
     gameText: Phaser.GameObjects.Text;
+    player: Phaser.Physics.Arcade.Sprite; // Add this
+    cursors: Phaser.Types.Input.Keyboard.CursorKeys; // Add this
 
     constructor ()
     {
@@ -14,23 +17,80 @@ export class Game extends Scene
 
     create ()
     {
+        console.log('Game scene is creating...');
+
+        const map = this.make.tilemap({key: 'map'});
+        console.log('map is created')
+
+
+        const tileset1 = map.addTilesetImage('IceTileset', 'tile1', 32, 32, 0, 0) as Phaser.Tilemaps.Tileset;
+        const tileset2 = map.addTilesetImage('tf_winter_tileA2', 'tile2', 32, 32, 0, 0) as Phaser.Tilemaps.Tileset;
+        const tileset3 = map.addTilesetImage('tf_winter_tileA5_cave', 'tile3', 32, 32, 0, 0) as Phaser.Tilemaps.Tileset;
+        const tileset4 = map.addTilesetImage('tf_winter_tileB', 'tile4', 32, 32, 0, 0) as Phaser.Tilemaps.Tileset;
+        const tileset5 = map.addTilesetImage('tf_winter_tileD', 'tile5', 32, 32, 0, 0) as Phaser.Tilemaps.Tileset;
+        console.log('addTilesetImage success');
+
+
+        const layer1 = map.createLayer('Tile Layer 1', [tileset1, tileset2, tileset3, tileset4, tileset5], 0, 0) as Phaser.Tilemaps.TilemapLayer;
+        const layer2 = map.createLayer('Tile Layer 2', [tileset1, tileset2, tileset3, tileset4, tileset5], 0, 0) as Phaser.Tilemaps.TilemapLayer;
+        console.log('createLayer success');
+
+        this.player = this.physics.add.sprite(500, 500, 'princess', 'princess_idle_1'); // Ensure you have 'player' asset loaded
+        console.log('Player body:', this.player.body);
+
+        layer1.setCollisionByProperty({ collides: true});
+        layer2.setCollisionByProperty({ collides: true});
+
+        // Arcade Physics로 충돌 처리
+        this.physics.add.collider(this.player, layer1);
+        this.physics.add.collider(this.player, layer2);
+        
         this.camera = this.cameras.main;
-        this.camera.setBackgroundColor(0x00ff00);
+        this.camera.setBackgroundColor(0x000000);
 
-        this.background = this.add.image(512, 384, 'background');
-        this.background.setAlpha(0.5);
 
-        this.gameText = this.add.text(512, 384, 'Make something fun!\nand share it with us:\nsupport@phaser.io', {
-            fontFamily: 'Arial Black', fontSize: 38, color: '#ffffff',
-            stroke: '#000000', strokeThickness: 8,
-            align: 'center'
-        }).setOrigin(0.5).setDepth(100);
+        this.player.setCollideWorldBounds(true);
+        this.player.setDepth(1)
+        console.log('Player visibility:', this.player.visible, 'Alpha:', this.player.alpha);
+        
+        this.cursors = this.input?.keyboard?.createCursorKeys()!;
+
+        console.log('Game scene created successfully.');
+
+        // 스프라이트가 화면 범위 내에 있는지 확인
+        if (this.player.x > this.cameras.main.width || this.player.y > this.cameras.main.height) {
+            console.warn('Player is out of camera bounds.');
+        }
 
         EventBus.emit('current-scene-ready', this);
+
+    }
+
+    update() {
+        console.log('Game update loop running...');
+        if (!this.player || !this.cursors) {
+            return; // Early return if player or cursors are not initialized
+        }
+
+        this.player.setVelocity(0); // Reset velocity each frame
+           
+        console.log('Maybe doing well ~ ')
+        if (this.cursors.left.isDown) {
+            this.player.setVelocityX(-200);
+        } else if (this.cursors.right.isDown) {
+            this.player.setVelocityX(200);
+        }
+
+        if (this.cursors.up.isDown) {
+            this.player.setVelocityY(-200);
+        } else if (this.cursors.down.isDown) {
+            this.player.setVelocityY(200);
+        }
     }
 
     changeScene ()
     {
+        console.log('Changing scene to GameOver.');
         this.scene.start('GameOver');
     }
 }
