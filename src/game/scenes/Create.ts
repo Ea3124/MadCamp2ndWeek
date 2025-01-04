@@ -1,12 +1,17 @@
 // src/scenes/Create.ts
-
-import { Scene, GameObjects, Input } from 'phaser';
-import { client } from '../socket'; // socket.ts에서 import
+import { Scene, GameObjects } from 'phaser';
+import { client } from '../socket';
 import { EventBus } from '../EventBus';
+
+interface CreateData {
+    nickname: string;
+}
 
 export class Create extends Scene {
     background: GameObjects.Image;
     title: GameObjects.Text;
+    nickname: string;  // Intro에서 전달받은 닉네임
+
     roomNameText: GameObjects.Text;
     roomNameInput: HTMLInputElement;
     mapText: GameObjects.Text;
@@ -19,20 +24,32 @@ export class Create extends Scene {
         super('Create');
     }
 
+    init(data: CreateData) {
+        this.nickname = data.nickname || 'noname';
+    }
+
     create() {
         // 배경
         this.background = this.add.image(512, 384, 'background');
 
         // 제목
         this.title = this.add.text(512, 100, '방 생성', {
-            fontFamily: 'Arial Black', fontSize: 48, color: '#ffffff',
-            stroke: '#000000', strokeThickness: 8,
+            fontFamily: 'Arial Black',
+            fontSize: 48,
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 8,
             align: 'center'
         }).setOrigin(0.5);
 
-        // 방 이름 입력
+        // nickname을 포함하여 newplayer 이벤트 전송
+        client.emit('newplayer', { nickname: this.nickname });
+
+        // 방 이름
         this.roomNameText = this.add.text(200, 200, '방 이름:', {
-            fontFamily: 'Arial', fontSize: 24, color: '#ffffff'
+            fontFamily: 'Arial',
+            fontSize: 24,
+            color: '#ffffff'
         }).setOrigin(0, 0.5);
 
         this.roomNameInput = document.createElement('input');
@@ -48,7 +65,9 @@ export class Create extends Scene {
 
         // 맵 선택
         this.mapText = this.add.text(200, 300, '맵 선택:', {
-            fontFamily: 'Arial', fontSize: 24, color: '#ffffff'
+            fontFamily: 'Arial',
+            fontSize: 24,
+            color: '#ffffff'
         }).setOrigin(0, 0.5);
 
         this.mapDropdown = document.createElement('select');
@@ -59,7 +78,6 @@ export class Create extends Scene {
         this.mapDropdown.style.padding = '10px';
         this.mapDropdown.style.fontSize = '16px';
 
-        // 사용 가능한 맵 목록 (실제 맵 이름으로 대체)
         const maps = ['Map1', 'Map2', 'Map3']; // 실제 맵 이름으로 변경 필요
         maps.forEach(map => {
             const option = document.createElement('option');
@@ -69,9 +87,11 @@ export class Create extends Scene {
         });
         document.body.appendChild(this.mapDropdown);
 
-        // 비밀번호 입력 (선택사항)
+        // 비밀번호 (선택)
         this.passwordText = this.add.text(200, 400, '비밀번호 (선택):', {
-            fontFamily: 'Arial', fontSize: 24, color: '#ffffff'
+            fontFamily: 'Arial',
+            fontSize: 24,
+            color: '#ffffff'
         }).setOrigin(0, 0.5);
 
         this.passwordInput = document.createElement('input');
@@ -85,18 +105,26 @@ export class Create extends Scene {
         this.passwordInput.style.fontSize = '16px';
         document.body.appendChild(this.passwordInput);
 
-        // 방 생성 버튼
+        // createButton
         this.createButton = this.add.image(512, 500, 'createButton').setInteractive();
         this.createButton.on('pointerdown', () => {
             this.createRoom();
         });
 
-        // 방 생성 응답 수신
-        client.on('createroom_response', (data: { success: boolean, message?: string, roomName?: string }) => {
+        // 방 생성 응답
+        // 방 생성 응답 처리
+        client.on('createroom_response', (data: { success: boolean; message?: string; roomName?: string; leader?: string }) => {
             if (data.success) {
-                // 게임 씬으로 전환하면서 선택된 맵 정보 전달
+                const roomName = data.roomName!;
                 const selectedMap = this.mapDropdown.value;
-                this.scene.start('Game', { map: selectedMap });
+                const leader = data.leader!;  // 방장 socket.id
+                // WaitingRoom 씬으로 이동
+                this.scene.start('WaitingRoom', { 
+                roomName, 
+                nickname: this.nickname, 
+                map: selectedMap,
+                leader  // 추가!
+                });
             } else {
                 alert(`방 생성 실패: ${data.message}`);
             }
@@ -115,12 +143,15 @@ export class Create extends Scene {
             return;
         }
 
-        // 방 생성 요청 전송
         client.emit('createroom', { roomName, map, password: password || null });
     }
 
     shutdown() {
-        // 씬 종료 시 이벤트 리스너 제거
         client.off('createroom_response');
+
+        // HTML 요소 정리
+        document.body.removeChild(this.roomNameInput);
+        document.body.removeChild(this.mapDropdown);
+        document.body.removeChild(this.passwordInput);
     }
 }

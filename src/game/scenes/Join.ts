@@ -1,12 +1,17 @@
 // src/scenes/Join.ts
-
-import { Scene, GameObjects, Input } from 'phaser';
-import { client } from '../socket'; // socket.ts에서 import
+import { Scene, GameObjects } from 'phaser';
+import { client } from '../socket';
 import { EventBus } from '../EventBus';
+
+interface JoinData {
+    nickname: string;
+}
 
 export class Join extends Scene {
     background: GameObjects.Image;
     title: GameObjects.Text;
+    nickname: string;  // Intro 씬에서 전달받은 닉네임
+
     roomListContainer: GameObjects.Container;
     selectedRoom: string | null;
     passwordInput: HTMLInputElement | null;
@@ -16,14 +21,21 @@ export class Join extends Scene {
         super('Join');
     }
 
+    init(data: JoinData) {
+        this.nickname = data.nickname || 'noname';
+    }
+
     create() {
         // 배경
         this.background = this.add.image(512, 384, 'background');
 
         // 제목
         this.title = this.add.text(512, 100, '방 참가', {
-            fontFamily: 'Arial Black', fontSize: 48, color: '#ffffff',
-            stroke: '#000000', strokeThickness: 8,
+            fontFamily: 'Arial Black',
+            fontSize: 48,
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 8,
             align: 'center'
         }).setOrigin(0.5);
 
@@ -33,13 +45,16 @@ export class Join extends Scene {
         // 서버에 방 목록 요청
         client.emit('getrooms');
 
+        // nickname을 포함하여 newplayer 이벤트 전송
+        client.emit('newplayer', { nickname: this.nickname });
+
         // 방 목록 수신
-        client.on('roomlist', (rooms: { roomName: string, map: string, playerCount: number, passwordProtected: boolean }[]) => {
+        client.on('roomlist', (rooms: { roomName: string; map: string; playerCount: number; passwordProtected: boolean; status: string }[]) => {
             this.displayRoomList(rooms);
         });
 
         // 방 목록 업데이트 수신
-        client.on('roomlist_update', (rooms: { roomName: string, map: string, playerCount: number, passwordProtected: boolean }[]) => {
+        client.on('roomlist_update', (rooms: { roomName: string; map: string; playerCount: number; passwordProtected: boolean; status: string }[]) => {
             this.displayRoomList(rooms);
         });
 
@@ -49,41 +64,51 @@ export class Join extends Scene {
             this.attemptJoin();
         });
 
-        // 비밀번호 입력 (숨김)
+        // 비밀번호 입력
         this.createPasswordInput();
 
-        // 방 참가 응답 수신
-        client.on('joinroom_response', (data: { success: boolean, message?: string, roomName?: string, map?: string }) => {
+        // 방 참가 응답 처리
+        client.on('joinroom_response', (data: { success: boolean; message?: string; roomName?: string; map?: string; leader?: string }) => {
             if (data.success) {
-                // 게임 씬으로 전환하면서 맵 정보 전달
-                this.scene.start('Game', { map: data.map });
+                const roomName = data.roomName!;
+                const selectedMap = data.map!;
+                const leader = data.leader!; // 현재 방장 socket.id
+                // WaitingRoom 씬으로 이동
+                this.scene.start('WaitingRoom', { 
+                roomName, 
+                nickname: this.nickname, 
+                map: selectedMap,
+                leader
+                });
             } else {
                 alert(`방 참가 실패: ${data.message}`);
             }
         });
 
+
         EventBus.emit('current-scene-ready', this);
     }
 
-    displayRoomList(rooms: { roomName: string, map: string, playerCount: number, passwordProtected: boolean }[]) {
-        // 기존 방 목록 삭제
+    displayRoomList(rooms: { roomName: string; map: string; playerCount: number; passwordProtected: boolean; status: string }[]) {
         this.roomListContainer.removeAll(true);
-        
+
         rooms.forEach((room, index) => {
             const yOffset = index * 60;
 
-            // 방 버튼
+            // 방이 이미 시작된 경우 표시하지 않음
+            if (room.status === 'started') return;
+
             const roomButton = this.add.image(-200, yOffset, 'roomButton').setInteractive();
             roomButton.on('pointerdown', () => {
                 this.selectRoom(room.roomName, room.passwordProtected);
             });
 
-            // 방 정보 텍스트
-            const roomText = this.add.text(-200, yOffset, `${room.roomName} (${room.playerCount}명)${room.passwordProtected ? ' [비밀번호]' : ''}`, {
-                fontFamily: 'Arial', fontSize: 24, color: '#ffffff'
+            const roomText = this.add.text(-200, yOffset, `${room.roomName} (${room.playerCount}/4명)${room.passwordProtected ? ' [비밀번호]' : ''}`, {
+                fontFamily: 'Arial',
+                fontSize: 24,
+                color: '#ffffff'
             }).setOrigin(0, 0.5);
 
-            // 컨테이너에 추가
             this.roomListContainer.add([roomButton, roomText]);
         });
     }
@@ -102,7 +127,6 @@ export class Join extends Scene {
     }
 
     createPasswordInput() {
-        // 비밀번호 입력 HTML 요소 생성
         this.passwordInput = document.createElement('input');
         this.passwordInput.type = 'password';
         this.passwordInput.placeholder = '방 비밀번호 입력';
@@ -112,8 +136,7 @@ export class Join extends Scene {
         this.passwordInput.style.width = '400px';
         this.passwordInput.style.padding = '10px';
         this.passwordInput.style.fontSize = '16px';
-        this.passwordInput.style.display = 'none'; // 기본적으로 숨김
-
+        this.passwordInput.style.display = 'none'; 
         document.body.appendChild(this.passwordInput);
     }
 
@@ -122,13 +145,9 @@ export class Join extends Scene {
             alert('참가할 방을 선택해주세요.');
             return;
         }
-
         const password = this.passwordInput?.value || null;
 
-        // 'joinroom' 이벤트 전송
-        client.emit('joinroom', { roomName: this.selectedRoom, password: password });
-
-        // 비밀번호 입력 숨김 및 초기화
+        client.emit('joinroom', { roomName: this.selectedRoom, password });
         if (this.passwordInput) {
             this.passwordInput.style.display = 'none';
             this.passwordInput.value = '';
@@ -136,9 +155,13 @@ export class Join extends Scene {
     }
 
     shutdown() {
-        // 씬 종료 시 이벤트 리스너 제거
         client.off('roomlist');
         client.off('roomlist_update');
         client.off('joinroom_response');
+
+        // 비밀번호 Input 제거
+        if (this.passwordInput) {
+            document.body.removeChild(this.passwordInput);
+        }
     }
 }

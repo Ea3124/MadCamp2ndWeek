@@ -39,6 +39,7 @@ export class Preloader extends Scene
         this.load.image('human', 'human.png');
         this.load.image('bell', 'bell.png');
         this.load.image('joinButton', 'joinButton.png');
+        this.load.image('startButton', 'startButton.png');
         this.load.image('createButton', 'createButton.png');
     }
 
