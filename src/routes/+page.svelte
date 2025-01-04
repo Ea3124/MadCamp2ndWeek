@@ -97,7 +97,7 @@
             <pre>{JSON.stringify(spritePosition, null, 2)}</pre>
         </div>
         <div>
-            <button class="button" on:click={addSprite}>Add New Sprite</button>
+            <button class="button" on:click={addSprite}>Add New Spritee</button>
         </div>
     </div>
 </div>
