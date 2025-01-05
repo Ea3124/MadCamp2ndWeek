@@ -57,6 +57,19 @@ function getRoomList() {
   });
 }
 
+// 예) 1초마다 전체 플레이어 좌표를 syncPosition 이벤트로 전송
+setInterval(() => {
+  for (const [id, p] of Object.entries(players)) {
+    // roomId가 있을 경우, 그 방에만 보내거나, 전역으로 보내거나 결정은 자유
+    // 여기서는 간단히 모두에게 보낸다고 가정
+    io.emit('syncPosition', {
+      id,
+      x: p.x,
+      y: p.y
+    });
+  }
+}, 1000);
+
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
@@ -278,29 +291,55 @@ io.on('connection', (socket) => {
   });
 
   // 'move' 이벤트 핸들러 수정 (방 내에서만 처리)
+  // socket.on('move', (data) => {
+  //   if (!players[socket.id]) return;
+  //   const roomName = players[socket.id].roomId;
+  //   if (!roomName) return;
+
+  //   let newX = players[socket.id].x;
+  //   let newY = players[socket.id].y;
+
+  //   switch (data.dir) {
+  //     case 'left': newX -= 5; break;
+  //     case 'right': newX += 5; break;
+  //     case 'up': newY -= 5; break;
+  //     case 'down': newY += 5; break;
+  //   }
+
+  //   if (!checkCollision(players[socket.id], newX, newY)) {
+  //     players[socket.id].x = newX;
+  //     players[socket.id].y = newY;
+  //     io.to(roomName).emit('move', { id: socket.id, x: newX, y: newY });
+  //   } else {
+  //     console.log(`플레이어 ${socket.id}의 이동이 충돌로 인해 취소됨.`);
+  //   }
+  // });
+
+  // (선택) move 이벤트에서 서버도 x,y를 업데이트해서 '대략적인' 위치를 저장
   socket.on('move', (data) => {
     if (!players[socket.id]) return;
     const roomName = players[socket.id].roomId;
     if (!roomName) return;
 
-    let newX = players[socket.id].x;
-    let newY = players[socket.id].y;
-
+    // data.dir = 'left'|'right'|'up'|'down'|'stop'
+    // 간단히 속도 5로 계산
+    const speed = 5;
     switch (data.dir) {
-      case 'left': newX -= 5; break;
-      case 'right': newX += 5; break;
-      case 'up': newY -= 5; break;
-      case 'down': newY += 5; break;
+      case 'left':  players[socket.id].x -= speed; break;
+      case 'right': players[socket.id].x += speed; break;
+      case 'up':    players[socket.id].y -= speed; break;
+      case 'down':  players[socket.id].y += speed; break;
+      // stop이면 변화 없음
     }
 
-    if (!checkCollision(players[socket.id], newX, newY)) {
-      players[socket.id].x = newX;
-      players[socket.id].y = newY;
-      io.to(roomName).emit('move', { id: socket.id, x: newX, y: newY });
-    } else {
-      console.log(`플레이어 ${socket.id}의 이동이 충돌로 인해 취소됨.`);
-    }
+    // 그리고 이 방향 정보를 그대로 방에 브로드캐스트
+    io.to(roomName).emit('move', {
+      id: socket.id,
+      dir: data.dir,
+    });
   });
+
+
 
   // 연결 해제
   socket.on('disconnect', () => {
@@ -355,6 +394,13 @@ io.on('connection', (socket) => {
 
     socket.emit('playersinroom', playersInRoom);
   });
+
+  socket.on('reportPosition', (data) => {
+    if (!players[socket.id]) return;
+    players[socket.id].x = data.x;
+    players[socket.id].y = data.y;
+  });
+  
 
 });
 

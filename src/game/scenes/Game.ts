@@ -12,19 +12,14 @@ export class Game extends Scene {
     background: Phaser.GameObjects.Image;
     gameText: Phaser.GameObjects.Text;
     player: Phaser.Physics.Arcade.Sprite; // Add this        
+    private layer1!: Phaser.Tilemaps.TilemapLayer;
+    private layer2!: Phaser.Tilemaps.TilemapLayer;
 
     // 온라인으로 접속한 플레이어들의 스프라이트 목록
-    playerMap: { [key: string]: Phaser.GameObjects.Sprite } = {};
+    playerMap: { [key: string]: Phaser.Physics.Arcade.Sprite } = {};
 
     // 방향키
     cursors: Phaser.Types.Input.Keyboard.CursorKeys;
-
-    wasd: {
-        up: Phaser.Input.Keyboard.Key,
-        down: Phaser.Input.Keyboard.Key,
-        left: Phaser.Input.Keyboard.Key,
-        right: Phaser.Input.Keyboard.Key
-    };
 
     map: string;
 
@@ -40,7 +35,8 @@ export class Game extends Scene {
         // 선택된 맵 로드
         this.load.image(this.map, `assets/maps/${this.map}.png`);
         this.load.image('human', 'assets/human.png');
-        this.load.image('bell', 'assets/bell.png');
+        this.load.spritesheet('princess', 'assets/princess.png', { frameWidth: 32, frameHeight: 32 });
+
         // 기타 필요한 자산 로드
     }
 
@@ -61,19 +57,19 @@ export class Game extends Scene {
         console.log('addTilesetImage success');
 
 
-        const layer1 = map.createLayer('Tile Layer 1', [tileset1, tileset2, tileset3, tileset4, tileset5], 0, 0) as Phaser.Tilemaps.TilemapLayer;
-        const layer2 = map.createLayer('Tile Layer 2', [tileset1, tileset2, tileset3, tileset4, tileset5], 0, 0) as Phaser.Tilemaps.TilemapLayer;
+        this.layer1 = map.createLayer('Tile Layer 1', [tileset1, tileset2, tileset3, tileset4, tileset5], 0, 0) as Phaser.Tilemaps.TilemapLayer;
+        this.layer2 = map.createLayer('Tile Layer 2', [tileset1, tileset2, tileset3, tileset4, tileset5], 0, 0) as Phaser.Tilemaps.TilemapLayer;
         console.log('createLayer success');
 
         this.player = this.physics.add.sprite(500, 500, 'princess', 'princess_idle_1'); // Ensure you have 'player' asset loaded
         console.log('Player body:', this.player.body);
 
-        layer1.setCollisionByProperty({ collides: true});
-        layer2.setCollisionByProperty({ collides: true});
+        this.layer1.setCollisionByProperty({ collides: true});
+        this.layer2.setCollisionByProperty({ collides: true});
 
         // Arcade Physics로 충돌 처리
-        this.physics.add.collider(this.player, layer1);
-        this.physics.add.collider(this.player, layer2);
+        this.physics.add.collider(this.player, this.layer1);
+        this.physics.add.collider(this.player, this.layer2);
         
         this.camera = this.cameras.main;
         this.camera.setBackgroundColor(0x000000);
@@ -82,14 +78,14 @@ export class Game extends Scene {
         // 선택된 맵을 배경으로 설정
         this.background = this.add.image(512, 384, this.map).setAlpha(0.5);
 
-        this.gameText = this.add.text(512, 384, '게임을 시작합니다!', {
-            fontFamily: 'Arial Black', fontSize: 38, color: '#ffffff',
-            stroke: '#000000', strokeThickness: 8,
-            align: 'center'
-        }).setOrigin(0.5).setDepth(100);
+        // this.gameText = this.add.text(512, 384, '게임을 시작합니다!', {
+        //     fontFamily: 'Arial Black', fontSize: 38, color: '#ffffff',
+        //     stroke: '#000000', strokeThickness: 8,
+        //     align: 'center'
+        // }).setOrigin(0.5).setDepth(100);
 
         // **Socket.io: 1) 새 플레이어 접속 알림**
-        client.emit('newplayer');
+        client.askNewPlayer();
 
         client.on('yourId', (id: string) => {
             this.currentPlayerId = id;
@@ -107,12 +103,6 @@ export class Game extends Scene {
             });
         });
 
-        this.wasd = {
-            up: this.input?.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.W)!,
-            down: this.input?.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.S)!,
-            left: this.input?.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.A)!,
-            right: this.input?.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.D)!
-        };
         this.player.setCollideWorldBounds(true);
         this.player.setDepth(1)
         console.log('Player visibility:', this.player.visible, 'Alpha:', this.player.alpha);
@@ -129,49 +119,33 @@ export class Game extends Scene {
         EventBus.emit('current-scene-ready', this);
     }
 
-    update() {
+    update(time: number, delta: number) {
+        if (!this.player || !this.cursors) return;
+      
+        // 기존 이동 로직
+        this.player.setVelocity(0);
         if (this.cursors.left.isDown) {
-            client.emit('move', { dir: 'left' });
+          this.player.setVelocityX(-200);
+          client.emit('move', { dir: 'left' });
         } else if (this.cursors.right.isDown) {
-            client.emit('move', { dir: 'right' });
+          this.player.setVelocityX(200);
+          client.emit('move', { dir: 'right' });
         } else if (this.cursors.up.isDown) {
-            client.emit('move', { dir: 'up' });
+          this.player.setVelocityY(-200);
+          client.emit('move', { dir: 'up' });
         } else if (this.cursors.down.isDown) {
-            client.emit('move', { dir: 'down' });
+          this.player.setVelocityY(200);
+          client.emit('move', { dir: 'down' });
+        } else {
+          client.emit('move', { dir: 'stop' });
         }
-
-        // bell 스프라이트에 대한 이동 처리
-        this.handleBellMovement();
-    }
-
-    handleBellMovement() {
-        const bellSpeed = 2;
-        const humanSprite = this.playerMap[this.currentPlayerId];  // 현재 플레이어의 human 스프라이트
-        
-        if (!humanSprite) {
-            console.warn(`현재 플레이어 ID ${this.currentPlayerId}에 해당하는 스프라이트를 찾을 수 없습니다.`);
-            return;
+      
+        // (선택) 예: 500ms마다 서버에 내 위치 보고
+        if (time % 1 < delta) {
+          client.emit('reportPosition', { x: this.player.x, y: this.player.y });
         }
-    
-        const bellSprite = humanSprite.getData('bell');
-        
-        if (!bellSprite) {
-            console.warn(`플레이어 ID ${this.currentPlayerId}에 해당하는 bell 스프라이트를 찾을 수 없습니다.`);
-            return;
-        }
-    
-        if (this.wasd.left.isDown) {
-            bellSprite.x = Math.max(humanSprite.x - humanSprite.width / 2, bellSprite.x - bellSpeed);
-        } else if (this.wasd.right.isDown) {
-            bellSprite.x = Math.min(humanSprite.x + humanSprite.width / 2, bellSprite.x + bellSpeed);
-        }
-    
-        if (this.wasd.up.isDown) {
-            bellSprite.y = Math.max(humanSprite.y - humanSprite.height / 2, bellSprite.y - bellSpeed);
-        } else if (this.wasd.down.isDown) {
-            bellSprite.y = Math.min(humanSprite.y + humanSprite.height / 2, bellSprite.y + bellSpeed);
-        }
-    }
+      }
+      
 
     /**
      * 소켓 이벤트들을 모아서 처리
@@ -191,28 +165,70 @@ export class Game extends Scene {
         });
 
         // (c) 특정 플레이어가 이동했을 때
-        client.on('move', (player: { id: string, x: number, y: number }) => {
-            this.movePlayer(player.id, player.x, player.y);
-            console.log("Player moved:", player.id);
-        });
+        // client.on('move', (player: { id: string, x: number, y: number }) => {
+        //     this.movePlayer(player.id, player.x, player.y);
+        //     console.log("Player moved:", player.id);
+        // });
+
+        // 소켓 이벤트 처리
+        client.on('move', (data: { id: string; dir: string }) => {
+            const sprite = this.playerMap[data.id];
+            if (!sprite) return;  // 혹은 아직 안 만들어진 경우 무시
+        
+            // 1) 우선 이전 속도 리셋
+            sprite.setVelocity(0);
+        
+            // 2) 받은 방향에 따라 속도 설정
+            switch (data.dir) {
+              case 'left':
+                sprite.setVelocityX(-200);
+                break;
+              case 'right':
+                sprite.setVelocityX(200);
+                break;
+              case 'up':
+                sprite.setVelocityY(-200);
+                break;
+              case 'down':
+                sprite.setVelocityY(200);
+                break;
+              case 'stop':
+                // 아무것도 안 함 (이미 0이므로)
+                break;
+            }
+          });
+  
 
         // (d) 플레이어가 떠났을 때
         client.on('remove', (playerId: string) => {
             this.removePlayer(playerId);
             console.log("Player removed:", playerId);
         });
+
+        client.on('syncPosition', (data: { id: string, x: number, y: number }) => {
+            const sprite = this.playerMap[data.id];
+            if (!sprite) return;
+        
+            // 내 로컬 시뮬레이션과 살짝 차이가 있더라도 "스르륵" 보정(또는 그냥 덮어쓰기)
+            // 간단히: 즉시 덮어쓰기
+            sprite.x = data.x;
+            sprite.y = data.y;
+          });
     }
 
     addNewPlayer(id: string, x: number, y: number) {
         // 이미 존재하면 무시
         if (this.playerMap[id]) return;
 
-        const sprite = this.add.sprite(x, y, 'human'); // 예: star.png
+        // this.player = this.physics.add.sprite(500, 500, 'princess', 'princess_idle_1'); // Ensure you have 'player' asset loaded
+        const sprite = this.physics.add.sprite(500, 500, 'princess', 'princess_idle_1'); // Ensure you have 'player' asset loaded
         sprite.setTint(Math.random() * 0xffffff);     // 임의 색상(예시)
+        sprite.setCollideWorldBounds(true);
+        sprite.setDepth(1);
 
-        const bellSprite = this.add.sprite(x, y, 'bell');  // bell 이미지 추가
-        bellSprite.setDepth(sprite.depth + 1); // bell이 human 위에 있도록 설정
-        sprite.setData('bell', bellSprite);  // bellSprite를 human 스프라이트에 연결
+        this.physics.add.collider(sprite, this.layer1);
+        this.physics.add.collider(sprite, this.layer2);
+
 
         this.playerMap[id] = sprite;
     }
@@ -224,16 +240,6 @@ export class Game extends Scene {
         // human의 위치 업데이트
         sprite.x = x;
         sprite.y = y;
-
-        // bell의 위치 업데이트 (human과 동기화)
-        const bellSprite = sprite.getData('bell');
-        if (bellSprite) {
-            // 예: bell을 human의 위쪽에 위치시키기
-            const offsetX = 0;
-            const offsetY = -sprite.height / 2 - bellSprite.height / 2;
-            bellSprite.x = sprite.x + offsetX;
-            bellSprite.y = sprite.y + offsetY;
-        }
 
         console.log(`플레이어 ID: ${id}가 (${x}, ${y})로 이동됨`);
     }
