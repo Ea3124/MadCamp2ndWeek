@@ -59,17 +59,17 @@ export class Preloader extends Scene
         );
 
         this.load.atlas(
-            'player2',
+            'princess',
             'images/players/princess.png',
             'images/players/princess_atlas.json'   
         );
         this.load.atlas(
-            'player3',
+            'knight',
             'images/players/knight.png',
             'images/players/knight_atlas.json'
         );
         this.load.atlas(
-            'player4',
+            'townfolk',
             'images/players/townfolk.png',
             'images/players/townfolk_atlas.json'
         );
