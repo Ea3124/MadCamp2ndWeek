@@ -5,7 +5,7 @@
     import PhaserGame, { type TPhaserRef } from "../game/PhaserGame.svelte";
     import type { client } from "../game/socket";
 
-    // The sprite can only be moved in the MainMenu Scene
+    // The sprite can only be moved in the MainMenu Scenee
     let canMoveSprite = false;
 
     //  References to the PhaserGame component (game and scene are exposed)
