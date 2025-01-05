@@ -18,6 +18,8 @@ export class Preloader extends Scene
         //  This is the progress bar itself. It will increase in size from the left based on the % of progress.
         const bar = this.add.rectangle(512-230, 384, 4, 28, 0xffffff);
 
+        // const board = this.add.rectangle(100, 100)
+
         //  Use the 'progress' event emitted by the LoaderPlugin to update the loading bar
         this.load.on('progress', (progress: number) => {
 
@@ -34,6 +36,11 @@ export class Preloader extends Scene
 
         this.load.image('logo', 'logo.png');
         this.load.image('star', 'star.png');
+        this.load.image('human', 'human.png');
+        this.load.image('bell', 'bell.png');
+        this.load.image('joinButton', 'joinButton.png');
+        this.load.image('startButton', 'startButton.png');
+        this.load.image('createButton', 'createButton.png');
         // this.load.spritesheet('player', 'star.png', {
         //     frameWidth: 20, // 각 프레임의 너비
         //     frameHeight: 20, // 각 프레임의 높이
@@ -63,6 +70,9 @@ export class Preloader extends Scene
         
         console.log('All assets loaded, transitioning to MainMenu.');
         //  Move to the MainMenu. You could also swap this for a Scene Transition, such as a camera fade.
-        this.scene.start('MainMenu');
+        // this.scene.start('MainMenu');
+
+        //  Move to the Game. You could also swap this for a Scene Transition, such as a camera fade.
+        this.scene.start('Intro');
     }
 }
