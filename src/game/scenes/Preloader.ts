@@ -53,6 +53,12 @@ export class Preloader extends Scene
         this.load.animation('executioner_anim', 'images/players/executioner_anim.json');
         
         this.load.atlas(
+            'princess',
+            'images/players/princess.png',
+            'images/players/princess_atlas.json'   
+        );
+
+        this.load.atlas(
             'player2',
             'images/players/princess.png',
             'images/players/princess_atlas.json'   

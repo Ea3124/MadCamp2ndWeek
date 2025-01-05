@@ -11,7 +11,7 @@ export class Game extends Scene {
     camera: Phaser.Cameras.Scene2D.Camera;
     background: Phaser.GameObjects.Image;
     gameText: Phaser.GameObjects.Text;
-    player: Phaser.Physics.Arcade.Sprite; // Add this        
+    player: Phaser.Physics.Arcade.Sprite;        
     private layer1!: Phaser.Tilemaps.TilemapLayer;
     private layer2!: Phaser.Tilemaps.TilemapLayer;
 
@@ -45,7 +45,7 @@ export class Game extends Scene {
 
         console.log('Game scene is creating...');
 
-        const map = this.make.tilemap({key: 'map'});
+        const map = this.make.tilemap({ key: 'map' });
         console.log('map is created')
 
         const tileset1 = map.addTilesetImage('IceTileset', 'tile1', 32, 32, 0, 0) as Phaser.Tilemaps.Tileset;
@@ -55,7 +55,6 @@ export class Game extends Scene {
         const tileset5 = map.addTilesetImage('tf_winter_tileD', 'tile5', 32, 32, 0, 0) as Phaser.Tilemaps.Tileset;
         console.log('addTilesetImage success');
 
-
         this.layer1 = map.createLayer('Tile Layer 1', [tileset1, tileset2, tileset3, tileset4, tileset5], 0, 0) as Phaser.Tilemaps.TilemapLayer;
         this.layer2 = map.createLayer('Tile Layer 2', [tileset1, tileset2, tileset3, tileset4, tileset5], 0, 0) as Phaser.Tilemaps.TilemapLayer;
         console.log('createLayer success');
@@ -63,8 +62,8 @@ export class Game extends Scene {
         this.player = this.physics.add.sprite(500, 500, 'executioner'); 
         console.log('Player body:', this.player.body);
     
-        this.layer1.setCollisionByProperty({ collides: true});
-        this.layer2.setCollisionByProperty({ collides: true});
+        this.layer1.setCollisionByProperty({ collides: true });
+        this.layer2.setCollisionByProperty({ collides: true });
         this.layer2.setDepth(2);
 
         // Arcade Physics로 충돌 처리
@@ -78,17 +77,18 @@ export class Game extends Scene {
         // 선택된 맵을 배경으로 설정
         this.background = this.add.image(512, 384, this.map).setAlpha(0.5);
 
-        // this.gameText = this.add.text(512, 384, '게임을 시작합니다!', {
-        //     fontFamily: 'Arial Black', fontSize: 38, color: '#ffffff',
-        //     stroke: '#000000', strokeThickness: 8,
-        //     align: 'center'
-        // }).setOrigin(0.5).setDepth(100);
-
         // **Socket.io: 1) 새 플레이어 접속 알림**
         client.askNewPlayer();
 
         client.on('yourId', (id: string) => {
             this.currentPlayerId = id;
+            console.log(`Your player ID: ${id}`);
+
+            // 이미 추가된 플레이어 중 현재 플레이어 ID와 일치하는 것이 있으면 숨김
+            if (this.playerMap[id]) {
+                this.playerMap[id].setVisible(false);
+                console.log(`서버에서 로컬 플레이어 (${id})를 숨겼습니다.`);
+            }
         });
 
         // **Socket.io: 2) 서버에서 오는 이벤트 처리**
@@ -104,7 +104,7 @@ export class Game extends Scene {
         });
 
         this.player.setCollideWorldBounds(true);
-        this.player.setDepth(1)
+        this.player.setDepth(1);
         console.log('Player visibility:', this.player.visible, 'Alpha:', this.player.alpha);
         
         this.cursors = this.input?.keyboard?.createCursorKeys()!;
@@ -138,11 +138,11 @@ export class Game extends Scene {
             this.player.setVelocityY(-200);
             moving = true;
         } else if (this.cursors.down.isDown) {
-          this.player.setVelocityY(200);
-          moving = true;
-          client.emit('move', { dir: 'down' });
+            this.player.setVelocityY(200);
+            moving = true;
+            client.emit('move', { dir: 'down' });
         } else {
-          client.emit('move', { dir: 'stop' });
+            client.emit('move', { dir: 'stop' });
         }
 
         if (moving) {
@@ -152,12 +152,12 @@ export class Game extends Scene {
             this.player.anims.stop();
         }
       
-        // (선택) 예: 500ms마다 서버에 내 위치 보고
-        if (time % 1 < delta) {
-          client.emit('reportPosition', { x: this.player.x, y: this.player.y });
+        // 예: 500ms마다 서버에 내 위치 보고
+        if (time % 10 < delta) {  // 500ms로 변경
+            client.emit('reportPosition', { x: this.player.x, y: this.player.y });
         }
-      }
-      
+    }
+    
 
     /**
      * 소켓 이벤트들을 모아서 처리
@@ -175,12 +175,6 @@ export class Game extends Scene {
         client.on('newplayer', (player: { id: string, x: number, y: number }) => {
             this.addNewPlayer(player.id, player.x, player.y);
         });
-
-        // (c) 특정 플레이어가 이동했을 때
-        // client.on('move', (player: { id: string, x: number, y: number }) => {
-        //     this.movePlayer(player.id, player.x, player.y);
-        //     console.log("Player moved:", player.id);
-        // });
 
         // 소켓 이벤트 처리
         client.on('move', (data: { id: string; dir: string }) => {
@@ -210,7 +204,6 @@ export class Game extends Scene {
             }
           });
   
-
         // (d) 플레이어가 떠났을 때
         client.on('remove', (playerId: string) => {
             this.removePlayer(playerId);
@@ -225,15 +218,15 @@ export class Game extends Scene {
             // 간단히: 즉시 덮어쓰기
             sprite.x = data.x;
             sprite.y = data.y;
-          });
+        });
     }
 
     addNewPlayer(id: string, x: number, y: number) {
         // 이미 존재하면 무시
         if (this.playerMap[id]) return;
 
-        // this.player = this.physics.add.sprite(500, 500, 'princess', 'princess_idle_1'); // Ensure you have 'player' asset loaded
-        const sprite = this.physics.add.sprite(500, 500, 'princess', 'princess_idle_1'); // Ensure you have 'player' asset loaded
+        // 플레이어 스프라이트 생성
+        const sprite = this.physics.add.sprite(500, 500, 'princess', 'princess_idle_1');
         sprite.setTint(Math.random() * 0xffffff);     // 임의 색상(예시)
         sprite.setCollideWorldBounds(true);
         sprite.setDepth(1);
@@ -241,6 +234,11 @@ export class Game extends Scene {
         this.physics.add.collider(sprite, this.layer1);
         this.physics.add.collider(sprite, this.layer2);
 
+        // 동일 ID일 경우 스프라이트 숨기기
+        if (this.currentPlayerId && id === this.currentPlayerId) {
+            sprite.setVisible(false);
+            console.log(`서버 플레이어 (${id})가 로컬 플레이어와 동일하여 숨김 처리되었습니다.`);
+        }
 
         this.playerMap[id] = sprite;
     }

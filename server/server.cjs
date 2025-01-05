@@ -24,8 +24,8 @@ let rooms = {};   // { roomName: { map, password, players: [socketId, ...], lead
 function initializePlayer(socket, nickname) {
   if (!players[socket.id]) {
     players[socket.id] = {
-      x: Math.floor(Math.random() * 800),
-      y: Math.floor(Math.random() * 600),
+      x: 500,
+      y: 500,
       roomId: null,
       nickname: nickname || 'noname'
     };
