@@ -60,14 +60,13 @@ function getRoomList() {
 // 예) 1초마다 전체 플레이어 좌표를 syncPosition 이벤트로 전송
 setInterval(() => {
   for (const [id, p] of Object.entries(players)) {
-    // roomId가 있을 경우, 그 방에만 보내거나, 전역으로 보내거나 결정은 자유
-    // 여기서는 간단히 모두에게 보낸다고 가정
     io.emit('syncPosition', {
       id,
       x: p.x,
       y: p.y
     });
   }
+  
 }, 1000);
 
 io.on('connection', (socket) => {
