@@ -232,8 +232,29 @@ export class Game extends Scene {
         // 이미 존재하면 무시
         if (this.playerMap[id]) return;
 
-        // this.player = this.physics.add.sprite(500, 500, 'princess', 'princess_idle_1'); // Ensure you have 'player' asset loaded
-        const sprite = this.physics.add.sprite(500, 500, 'princess', 'princess_idle_1'); // Ensure you have 'player' asset loaded
+        const size = Object.keys(this.playerMap).length;
+        let sprite;
+        switch (size) {
+            case 0:
+                console.log('첫번째 플레이어');
+                sprite = this.physics.add.sprite(500, 500, 'princess'); 
+                break;
+            case 1:
+                console.log('두번째 플레이어');
+                sprite = this.physics.add.sprite(500, 500, 'knight');
+                break;
+            case 2:
+                console.log('세번째 플레이어');
+                sprite = this.physics.add.sprite(500, 500, 'executioner'); 
+                break;
+            case 3:
+                console.log('네번째 플레이어');
+                sprite = this.physics.add.sprite(500, 500, 'townfolk'); 
+                break; 
+            default:
+                console.log('???? 문제가 생김')
+                sprite = this.physics.add.sprite(500, 500, 'princess')  
+        }
         sprite.setTint(Math.random() * 0xffffff);     // 임의 색상(예시)
         sprite.setCollideWorldBounds(true);
         sprite.setDepth(1);
