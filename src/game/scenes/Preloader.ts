@@ -46,9 +46,26 @@ export class Preloader extends Scene
         // });
 
         this.load.atlas(
-            'princess',
-            'images/princess.png',
-            'images/princess_atlas.json'
+            'executioner',
+            'images/players/executioner.png',
+            'images/players/executioner_atlas.json'
+        );
+        this.load.animation('executioner_anim', 'images/players/executioner_anim.json');
+        
+        this.load.atlas(
+            'player2',
+            'images/players/princess.png',
+            'images/players/princess_atlas.json'   
+        );
+        this.load.atlas(
+            'player3',
+            'images/players/knight.png',
+            'images/players/knight_atlas.json'
+        );
+        this.load.atlas(
+            'player4',
+            'images/players/townfolk.png',
+            'images/players/townfolk_atlas.json'
         );
         this.load.image('tile1', 'images/IceTileset.png');
         this.load.image('tile2', 'images/tf_winter_tileA2.png');

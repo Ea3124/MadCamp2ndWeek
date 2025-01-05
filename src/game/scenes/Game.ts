@@ -48,7 +48,6 @@ export class Game extends Scene {
         const map = this.make.tilemap({key: 'map'});
         console.log('map is created')
 
-
         const tileset1 = map.addTilesetImage('IceTileset', 'tile1', 32, 32, 0, 0) as Phaser.Tilemaps.Tileset;
         const tileset2 = map.addTilesetImage('tf_winter_tileA2', 'tile2', 32, 32, 0, 0) as Phaser.Tilemaps.Tileset;
         const tileset3 = map.addTilesetImage('tf_winter_tileA5_cave', 'tile3', 32, 32, 0, 0) as Phaser.Tilemaps.Tileset;
@@ -61,11 +60,12 @@ export class Game extends Scene {
         this.layer2 = map.createLayer('Tile Layer 2', [tileset1, tileset2, tileset3, tileset4, tileset5], 0, 0) as Phaser.Tilemaps.TilemapLayer;
         console.log('createLayer success');
 
-        this.player = this.physics.add.sprite(500, 500, 'princess', 'princess_idle_1'); // Ensure you have 'player' asset loaded
+        this.player = this.physics.add.sprite(500, 500, 'executioner'); 
         console.log('Player body:', this.player.body);
-
+    
         this.layer1.setCollisionByProperty({ collides: true});
         this.layer2.setCollisionByProperty({ collides: true});
+        this.layer2.setDepth(2);
 
         // Arcade Physics로 충돌 처리
         this.physics.add.collider(this.player, this.layer1);
@@ -125,14 +125,13 @@ export class Game extends Scene {
         // 기존 이동 로직
         this.player.setVelocity(0);
         if (this.cursors.left.isDown) {
-          this.player.setVelocityX(-200);
-          client.emit('move', { dir: 'left' });
+            this.player.setVelocityX(-200);
         } else if (this.cursors.right.isDown) {
-          this.player.setVelocityX(200);
-          client.emit('move', { dir: 'right' });
-        } else if (this.cursors.up.isDown) {
-          this.player.setVelocityY(-200);
-          client.emit('move', { dir: 'up' });
+            this.player.setVelocityX(200);
+        }
+
+        if (this.cursors.up.isDown) {
+            this.player.setVelocityY(-200);
         } else if (this.cursors.down.isDown) {
           this.player.setVelocityY(200);
           client.emit('move', { dir: 'down' });
