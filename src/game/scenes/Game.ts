@@ -121,22 +121,35 @@ export class Game extends Scene {
 
     update(time: number, delta: number) {
         if (!this.player || !this.cursors) return;
+
+        let moving = false;
       
         // 기존 이동 로직
         this.player.setVelocity(0);
         if (this.cursors.left.isDown) {
             this.player.setVelocityX(-200);
+            moving = true;
         } else if (this.cursors.right.isDown) {
             this.player.setVelocityX(200);
+            moving = true;
         }
 
         if (this.cursors.up.isDown) {
             this.player.setVelocityY(-200);
+            moving = true;
         } else if (this.cursors.down.isDown) {
           this.player.setVelocityY(200);
+          moving = true;
           client.emit('move', { dir: 'down' });
         } else {
           client.emit('move', { dir: 'stop' });
+        }
+
+        if (moving) {
+            this.player.anims.play('executioner_walk', true);
+        } else {
+            // Stop the animation if no movement keys are pressed
+            this.player.anims.stop();
         }
       
         // (선택) 예: 500ms마다 서버에 내 위치 보고
