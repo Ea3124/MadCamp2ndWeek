@@ -101,6 +101,7 @@ export class Game extends Scene {
         this.background = this.add.image(512, 384, this.map).setAlpha(0.5);
 
         // **Socket.io: 1) 새 플레이어 접속 알림**
+        // 남들에게 내가 왔다고 알림
         client.askNewPlayer();
 
         client.on('yourId', (id: string) => {
@@ -189,10 +190,17 @@ export class Game extends Scene {
      */
     handleSocketEvents() {
         // (a) 이미 접속 중인 플레이어 목록 받기
-        client.on('allplayers', (players: { id: string, x: number, y: number }[]) => {
-            players.forEach((p) => {
-                this.addNewPlayer(p.id, p.x, p.y);
-                console.log("Existing player added:", p.id);
+        client.once('allplayers', (players: { id: string, x: number, y: number }[]) => {
+            console.log("Game_allplayers", players);
+            // players.forEach((p) => {
+            //     this.addNewPlayer(p.id, p.x, p.y);
+            //     console.log("Existing player added:", p.id);
+            // });
+            players.forEach((p, index) => {
+                // 플레이어의 인덱스를 0, 1, 2, 3으로 순환시키기
+                const playerIndex = index % 4;  // 4는 최대 플레이어 수
+                this.addNewPlayer(p.id, p.x, p.y, ['1', playerIndex]);
+                console.log("Existing player added:", p.id, "with index:", playerIndex);
             });
         });
 

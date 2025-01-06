@@ -104,6 +104,7 @@ io.on('connection', (socket) => {
     // 현재 접속 중인 모든 플레이어 목록
     // ex) allPlayersArr = [ { id: 'player1', x: 100, y: 200, nickname: 'Alice' },{ id: 'player2', x: 150, y: 250, nickname: 'Bob' }]
     const allPlayersArr = Object.keys(players).map((id) => { // .map으로 각 요소로 함수 실행 후 반환 값으로 새 배열생성
+      // console.log('server_allPlayersArr',allPlayersArr);
       const p = players[id];
       return { id, x: p.x, y: p.y, nickname: p.nickname};
     });
