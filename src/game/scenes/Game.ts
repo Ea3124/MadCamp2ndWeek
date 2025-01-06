@@ -119,7 +119,6 @@ export class Game extends Scene {
       
         // 기존 이동 로직
         this.player.setVelocity(0);
-        let moving = false;
 
         if (this.cursors.left.isDown) {
             this.player.setVelocityX(-200);
