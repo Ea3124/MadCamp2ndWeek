@@ -7,15 +7,19 @@ export class Intro extends Scene {
     background: GameObjects.Image;
     title: GameObjects.Text;
 
-    // 닉네임 입력 필드
-    nicknameInput: HTMLInputElement;
-
+    
     // 버튼
     joinButton: GameObjects.Image;
     createButton: GameObjects.Image;
+    
+    // 닉네임
+    private nickname: string = '';
 
     constructor() {
         super('Intro');
+    }
+
+    payload(){
     }
 
     create() {
@@ -24,18 +28,16 @@ export class Intro extends Scene {
 
         // 타이틀
         this.title = this.add.text(512, 250, '얼음 땡', {
-            fontFamily: 'Arial Black', fontSize: 38, color: '#ffffff',
+            fontFamily: 'Arial Black', fontSize: 58, color: '#ffffff',
             stroke: '#000000', strokeThickness: 8,
             align: 'center'
         }).setOrigin(0.5).setDepth(100);
 
-        // 닉네임 입력 필드 생성
-        this.createNicknameInput();
-
         // joinButton
         this.joinButton = this.add.image(400, 420, 'joinButton').setInteractive();
         this.joinButton.on('pointerdown', () => {
-            this.handleJoinGame();
+            // this.handleJoinGame();
+            this.handleJoinButtonClick();
         });
         this.add.text(450, 420, 'join game', {
             fontFamily: 'Arial Black', fontSize: 38, color: '#ffffff',
@@ -46,7 +48,8 @@ export class Intro extends Scene {
         // createButton
         this.createButton = this.add.image(400, 520, 'createButton').setInteractive();
         this.createButton.on('pointerdown', () => {
-            this.handleCreateGame();
+            // this.handleCreateGame();
+            this.handleCreateButtonClick();
         });
         this.add.text(450, 520, 'create game', {
             fontFamily: 'Arial Black', fontSize: 38, color: '#ffffff',
@@ -57,47 +60,55 @@ export class Intro extends Scene {
         EventBus.emit('current-scene-ready', this);
     }
 
-    createNicknameInput() {
-        // HTML input
-        this.nicknameInput = document.createElement('input');
-        this.nicknameInput.type = 'text';
-        this.nicknameInput.placeholder = 'Enter your nickname';
-        this.nicknameInput.style.position = 'absolute';
-        this.nicknameInput.style.top = '340px';
-        this.nicknameInput.style.left = '312px';
-        this.nicknameInput.style.width = '400px';
-        this.nicknameInput.style.padding = '10px';
-        this.nicknameInput.style.fontSize = '16px';
+    // joinButton 클릭 핸들러
+    handleJoinButtonClick() {
+        EventBus.emit('action-button-clicked', 'join');
+    }
 
-        document.body.appendChild(this.nicknameInput);
+    // createButton 클릭 핸들러
+    handleCreateButtonClick() {
+        EventBus.emit('action-button-clicked', 'create');
+    }
+
+    // Svelte에서 전달된 닉네임 및 액션 설정 메서드
+    setNickname(nickname: string, action: string) {
+        this.nickname = nickname;
+        console.log(`Nickname set to: ${this.nickname}, Action: ${action}`);
+
+        if (action === 'join') {
+            this.handleJoinGame();
+        } else if (action === 'create') {
+            this.handleCreateGame();
+        }
     }
 
     handleJoinGame() {
-        const nickname = this.nicknameInput.value.trim();
-        if (!nickname) {
+        if (!this.nickname) {
             alert('닉네임을 입력하세요!');
             return;
         }
+
+        // 서버로 닉네임 전송 (예시)
+        client.emit('joinGame', { nickname: this.nickname });
 
         // Join 씬으로 닉네임을 전달
-        this.scene.start('Join', { nickname });
+        this.scene.start('Join', { nickname: this.nickname });
     }
 
+
     handleCreateGame() {
-        const nickname = this.nicknameInput.value.trim();
-        if (!nickname) {
+        if (!this.nickname) {
             alert('닉네임을 입력하세요!');
             return;
         }
 
+        // 서버로 닉네임 전송 (예시)
+        client.emit('createGame', { nickname: this.nickname });
+
         // Create 씬으로 닉네임 전달
-        this.scene.start('Create', { nickname });
+        this.scene.start('Create', { nickname: this.nickname });
     }
 
     shutdown() {
-        // 씬이 종료되거나 전환될 때, HTML input 제거
-        if (this.nicknameInput) {
-            document.body.removeChild(this.nicknameInput);
-        }
     }
 }
