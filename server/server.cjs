@@ -98,7 +98,7 @@ io.on('connection', (socket) => {
   socket.on('newplayer', (data) => {
 
     const { nickname } = data || {}; // data 객체에서 nickname 속성 추출 (즉, data.nickname)
-    console.log('[socket.on(newPlayer)] new player name: ', data);
+    console.log('[socket.on(newPlayer)] new player name: ', nickname); //data대신 nickname수정
     initializePlayer(socket, nickname);
     
     // 현재 접속 중인 모든 플레이어 목록
@@ -147,6 +147,7 @@ io.on('connection', (socket) => {
     // 플레이어의 roomDetail 추가 
     players[socket.id].roomDetails = [roomName, 0];
 
+
     // 새로운 방 생성
     rooms[roomName] = {
       map: map,
@@ -171,7 +172,10 @@ io.on('connection', (socket) => {
     console.log(`[socket.on(createroom)] 방 생성됨 = ${roomName}, leader = ${socket.id}`);
   });
 
-
+  // 'getrooms' 이벤트 처리 (방 목록 요청)
+  socket.on('getrooms', () => {
+    socket.emit('roomlist', getRoomList());
+  });
 
   // *** 'joinroom' 이벤트 처리 ***
   socket.on('joinroom', (data) => {
@@ -190,9 +194,13 @@ io.on('connection', (socket) => {
       return;
     }
     
+    playerIndex = room.players.length; // 1, 2, 3
+    console.log('joingame_platerIndex',playerIndex)
+    console.log('joingame_socket.id',socket.id)
     room.players.push(socket.id);
-    playerIndex = room.players.length; // 0, 1, 2, 3
     players[socket.id].roomDetails = [roomName, playerIndex];
+    console.log('joingame_players.roomDetails',players[socket.id].roomDetails)
+    console.log('joingame_room_player',room.players)
     socket.join(roomName);
 
     // joinroom_response 성공
@@ -229,6 +237,8 @@ io.on('connection', (socket) => {
   socket.on('startgame', (data) => {
     const { roomName } = data;
     const room = rooms[roomName];
+    console.log('server_startgame_room :',room);
+    // console.log('server_startgame_roomName :',roomName);
 
     if (!room) {
       socket.emit('startgame_response', { succes: false, message: '존재하지 않는 방입니다.' });
@@ -246,8 +256,9 @@ io.on('connection', (socket) => {
     // 게임 시작
     room.status = 'started';
     const playersInRoom = room.players.map(id => {
-      return { id, playerIndex: players[id].roomDetails[0] };
+      return { id, playerIndex: players[id].roomDetails[1] };
     });
+    console.log('server_startgame_playersInRoom :',playersInRoom);
     io.to(roomName).emit('startgame', playersInRoom); // 방 내 모든 클라이언트에게 게임 시작 신호 전송
     
     io.emit('roomlist_update', getRoomList());

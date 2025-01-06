@@ -142,6 +142,7 @@ export class WaitingRoom extends Scene {
                 playerNames += `${player.nickname}\n`;
             });
             this.playersListText.setText(playerNames);
+            console.log('[updatePlayerList]updatde_player:',players)
         });
     }
 

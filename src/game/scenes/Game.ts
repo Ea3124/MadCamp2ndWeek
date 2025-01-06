@@ -250,9 +250,10 @@ export class Game extends Scene {
         // 이미 존재하면 무시
         if (this.playerMap[id]) return;
 
-        console.log("[addNewPlayer] roomDetails: ", roomDetails);
+        console.log("[addNewPlayer] roomDetails_0: ", roomDetails[0]);
+        console.log("[addNewPlayer] roomDetails_1: ", roomDetails[1]);
 
-        const size = roomDetails[0]
+        const size = roomDetails[1]
         let sprite;
         switch (size) {
             case 0:
