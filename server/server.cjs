@@ -66,23 +66,13 @@ function getRoomList() {
 setInterval(() => {
   for (const [id, p] of Object.entries(players)) { // players의 key-value쌍을 iterate. id = socket
     // players 가 { socketId: {x, y, roomDetails, nickname}, .. } 니까 id가 socketId, p가  {x, y, roomDetails, nickname}
-    const roomDetails = p.roomDetails;
-    let roomName = null; // 일단 roomName를 null로 선언. 이후 roomDetails가 존재하면 바꿈.
-    if (roomDetails === null) {
-      console.log('[setInterval] roomDetails is null');
-    } else if (roomDetails == null) {
-      console.log('[setInterval] roomDetails is undefined');
-    } else {
-      roomName = roomDetails[0];
-    }
-
     io.emit('syncPosition', { // 서버에 연결된 모든 클라이언트에 전송
       id, 
       x: p.x,
       y: p.y
     });
   }
-}, 10);
+}, 1);
 
 
 
@@ -126,6 +116,18 @@ io.on('connection', (socket) => {
     //   "nickname": "Alice",
     // } 
   });
+
+  socket.on('frozen', (data) => {
+    const isFrozen = data;
+    const roomName = players[socket.id].roomDetails[0]; 
+    const room = rooms[roomName];
+    console.log("frozen 들어옴: ", isFrozen);
+    if (isFrozen) {
+      io.to(roomName).emit('frozen', {id: socket.id, isFrozen: true});
+    } else {
+      io.to(roomName).emit('frozen', {id: socket.id, isFrozen: false});
+    }
+  })
 
 
   // *** 'createroom' 이벤트 처리 ***
@@ -375,17 +377,24 @@ io.on('connection', (socket) => {
       return;
     }
 
+
     const playersInRoom = room.players.map(id => {
-      return { id, nickname: players[id].nickname || null };
+      // Ensure the player object exists and also check for nickname property
+      const player = players[id];
+      if (!player) console.log("소켓이 갑작스럽게 삭제된 듯 함.");
+      return {
+        id: id,
+        nickname: player ? (player.nickname || 'noname') : 'noname'
+      };
     });
 
     socket.emit('playersinroom', playersInRoom);
   });
 
   socket.on('reportPosition', (data) => {
-    console.log("players[socket.id]가 존재?")
+    // console.log("players[socket.id]가 존재?")
     if (!players[socket.id]) return;
-    console.log("존재")
+    // console.log("존재")
     players[socket.id].x = data.x;
     players[socket.id].y = data.y;
   });
