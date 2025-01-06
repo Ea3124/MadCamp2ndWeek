@@ -144,6 +144,8 @@ export class WaitingRoom extends Scene {
             this.playersListText.setText(playerNames);
             console.log('[updatePlayerList]updatde_player:',players)
         });
+
+        
     }
 
     showStartButton() {

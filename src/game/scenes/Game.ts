@@ -61,26 +61,28 @@ export class Game extends Scene {
         this.layer2 = map.createLayer('Tile Layer 2', [tileset1, tileset2, tileset3, tileset4, tileset5], 0, 0) as Phaser.Tilemaps.TilemapLayer;
         console.log('createLayer success');
 
-        // this.player = this.physics.add.sprite(500, 500, 'executioner'); 
-        switch (this.playerIndex) {
+        const keys = Object.keys(this.playerMap);
+        const playerIndex = keys.indexOf(this.currentPlayerId);
+        console.log('playerIndex:', playerIndex);
+        switch (playerIndex) {
             case 0:
-                console.log('첫번째 플레이어');
-                this.player = this.physics.add.sprite(500, 500, 'princess'); 
+                console.log('첫번째 플레이어로 인식');
+                this.player = this.physics.add.sprite(500, 500, 'princess');
                 break;
             case 1:
-                console.log('두번째 플레이어');
+                console.log('두번째 플레이어로 인식');
                 this.player = this.physics.add.sprite(500, 500, 'knight');
                 break;
             case 2:
-                console.log('세번째 플레이어');
+                console.log('세번째 플레이어로 인식');
                 this.player = this.physics.add.sprite(500, 500, 'executioner'); 
                 break;
             case 3:
-                console.log('네번째 플레이어');
+                console.log('네번째 플레이어로 인식');
                 this.player = this.physics.add.sprite(500, 500, 'townfolk'); 
                 break; 
             default:
-                console.log('???? 문제가 생김')
+                console.log('???? 문제가 생김 로 인식')
                 this.player = this.physics.add.sprite(500, 500, 'princess')  
         }
         console.log('Player body:', this.player.body);
@@ -102,35 +104,26 @@ export class Game extends Scene {
 
         // **Socket.io: 1) 새 플레이어 접속 알림**
         // 남들에게 내가 왔다고 알림
-        client.askNewPlayer();
+        // client.askNewPlayer();
 
-        client.on('yourId', (id: string) => {
-            this.currentPlayerId = id;
-            console.log(`Your player ID: ${id}`);
+        // client.on('yourId', (id: string) => {
+        //     this.currentPlayerId = id;
+        //     console.log(`Your player ID: ${id}`);
 
-            // 이미 추가된 플레이어 중 현재 플레이어 ID와 일치하는 것이 있으면 숨김
-            if (this.playerMap[id]) {
-                this.playerMap[id].setVisible(false);
-                console.log(`서버에서 로컬 플레이어 (${id})를 숨겼습니다.`);
-            }
-        });
+        //     // 이미 추가된 플레이어 중 현재 플레이어 ID와 일치하는 것이 있으면 숨김
+        //     if (this.playerMap[id]) {
+        //         this.playerMap[id].setVisible(false);
+        //         console.log(`서버에서 로컬 플레이어 (${id})를 숨겼습니다.`);
+        //     }
+        // });
 
         // **Socket.io: 2) 서버에서 오는 이벤트 처리**
         this.handleSocketEvents();
 
-        // 맵을 클릭하면 좌표 전송
-        this.background.setInteractive();
-        this.background.on('pointerup', (pointer: Phaser.Input.Pointer) => {
-            client.emit('click', {
-                x: pointer.worldX,
-                y: pointer.worldY
-            });
-        });
-
         this.player.setCollideWorldBounds(true);
         this.player.setDepth(1);
         console.log('Player visibility:', this.player.visible, 'Alpha:', this.player.alpha);
-        
+
         this.cursors = this.input?.keyboard?.createCursorKeys()!;
 
         console.log('Game scene created successfully.');
@@ -140,8 +133,11 @@ export class Game extends Scene {
             console.warn('Player is out of camera bounds.');
         }
 
+        
+
         EventBus.emit('current-scene-ready', this);
     }
+    
 
     update(time: number, delta: number) {
         if (!this.player || !this.cursors) return;
@@ -153,14 +149,15 @@ export class Game extends Scene {
         if (this.cursors.left.isDown) {
             this.player.setVelocityX(-200);
             moving = true;
+            client.emit('move', { dir: 'left' });
         } else if (this.cursors.right.isDown) {
             this.player.setVelocityX(200);
             moving = true;
-        }
-
-        if (this.cursors.up.isDown) {
+            client.emit('move', { dir: 'right' });
+        } else if (this.cursors.up.isDown) {
             this.player.setVelocityY(-200);
             moving = true;
+            client.emit('move', { dir: 'up' });
             this.player.setTexture('snowman_with_red');
             return;
         } else if (this.cursors.down.isDown) {
