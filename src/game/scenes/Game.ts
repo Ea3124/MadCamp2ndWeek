@@ -22,15 +22,15 @@ export class Game extends Scene {
     private layer2!: Phaser.Tilemaps.TilemapLayer;
 
     // 온라인으로 접속한 플레이어들의 스프라이트 목록
-    playerMap: { [key: string]: Phaser.Physics.Arcade.Sprite } = {};
+    playerMap: { [key: string]: { sprite: Phaser.Physics.Arcade.Sprite, character: string } } = {};
     playersInRoom: any;
     playerIndex: number;
     myCharacter: string; // 내 sprite에 인물 저장.
     cursors: Phaser.Types.Input.Keyboard.CursorKeys;
     map: string;
 
-    // private reportTimer = 0;
-    // private readonly REPORT_INTERVAL = 100;
+    isFrozen: boolean = false; // 얼음 상태 관리
+
 
     constructor() {
         super('Game');
@@ -61,9 +61,6 @@ export class Game extends Scene {
         this.layer1 = map.createLayer('Tile Layer 1', [tileset1, tileset2, tileset3, tileset4, tileset5], 0, 0) as Phaser.Tilemaps.TilemapLayer;
         this.layer2 = map.createLayer('Tile Layer 2', [tileset1, tileset2, tileset3, tileset4, tileset5], 0, 0) as Phaser.Tilemaps.TilemapLayer;
         console.log('createLayer success');
-
-        this.player = this.physics.add.sprite(500, 500, 'executioner'); 
-        console.log('Player body:', this.player.body);
     
         this.layer1.setCollisionByProperty({ collides: true });
         this.layer2.setCollisionByProperty({ collides: true });
@@ -73,6 +70,34 @@ export class Game extends Scene {
         this.myCharacter = character;
         this.player = player;
         console.log('Player body:', this.player.body);
+
+        // '얼음' 상태 토글 이벤트
+        this.input.keyboard?.on('keydown-F', () => {
+            this.isFrozen = !this.isFrozen; // F 키로 얼음 상태 토글
+            // 해당 눈사람 이미지 모두 변경시키기
+            if (this.isFrozen) {
+                this.player.setVelocity(0); // 얼음 상태면 움직임을 멈춤
+                switch(this.myCharacter) {
+                    case 'princess': 
+                        this.player.setTexture('snowman_with_yellow');
+                        break;
+                    case 'knight': 
+                        this.player.setTexture('snowman_with_green');
+                        break;
+                    case 'townfolk': 
+                        this.player.setTexture('snowman_with_red');
+                        break;
+                    default:
+                        console.log("[client.on(frozen)] 오류 발생");
+                }
+                // this.player.setTexture('snowman_with_red');
+                client.emit('frozen', true);
+                //얼음 상태이면 눈사람으로 변신.
+            } else {
+                this.player.setTexture(this.myCharacter);
+                client.emit('frozen', false);
+            }
+        });
             
         this.camera = this.cameras.main;
         this.camera.setBackgroundColor(0x000000);
@@ -83,14 +108,14 @@ export class Game extends Scene {
         this.playersInRoom.forEach((p: { id: string; playerIndex: number }, i: number) => {
             // 자기 자신이면 pass
             if (p.id === this.currentPlayerId) {
-                this.playerMap[this.currentPlayerId] = this.player;
+                this.playerMap[this.currentPlayerId] = {sprite: this.player, character: this.myCharacter};
                 return; 
             }
             
             const { texture: someTexture, sprite: otherSprite } = this.createCharacter(p.playerIndex, 500, 500);
             
             // playerMap에 등록해서 추후 위치 갱신 등에서 참조
-            this.playerMap[p.id] = otherSprite;
+            this.playerMap[p.id] = {sprite: otherSprite, character: someTexture};
         });
         
         this.handleSocketEvents();
@@ -104,37 +129,36 @@ export class Game extends Scene {
 
         console.log('Game scene created successfully.');
 
-        // 스프라이트가 화면 범위 내에 있는지 확인
-        if (this.player.x > this.cameras.main.width || this.player.y > this.cameras.main.height) {
-            console.warn('Player is out of camera bounds.');
-        }
-
         EventBus.emit('current-scene-ready', this);
     }
 
     update(time: number, delta: number) {
         if (!this.player || !this.cursors) return;
-
+        if (this.isFrozen) {
+            client.emit('move', { dir: 'stop' });
+            this.player.anims.stop();
+            return
+        };
         let moving = false;
       
         // 기존 이동 로직
         this.player.setVelocity(0);
 
         if (this.cursors.left.isDown) {
-            this.player.setVelocityX(-200);
+            this.player.setVelocityX(-170);
             client.emit('move', { dir: 'left' });
             moving = true;
         } else if (this.cursors.right.isDown) {
-            this.player.setVelocityX(200);
+            this.player.setVelocityX(170);
             client.emit('move', { dir: 'right' });
             moving = true;
         } else if (this.cursors.up.isDown) {
-            this.player.setVelocityY(-200);
+            this.player.setVelocityY(-170);
             client.emit('move', { dir: 'up' });
             moving = true;
             // this.player.setTexture('snowman_with_red');
         } else if (this.cursors.down.isDown) {
-            this.player.setVelocityY(200);
+            this.player.setVelocityY(170);
             client.emit('move', { dir: 'down' });
             moving = true;
         } else {
@@ -161,32 +185,67 @@ export class Game extends Scene {
      */
     handleSocketEvents() {
 
+        client.on('frozen', (data) => {
+            const isFrozen = data.isFrozen;
+            const character = this.playerMap[data.id].character;
+            console.log("fronzen: client 들어옴");
+            switch (character) {
+                case 'princess': 
+                    if (isFrozen) {
+                        this.playerMap[data.id].sprite.setTexture('snowman_with_yellow');
+                    } else {
+                        this.playerMap[data.id].sprite.setTexture(character);
+                    } break;
+                case 'knight': 
+                    if (isFrozen) {
+                        this.playerMap[data.id].sprite.setTexture('snowman_with_green');
+                    } else {
+                        this.playerMap[data.id].sprite.setTexture(character);
+                    } break;
+                case 'townfolk': 
+                    if (isFrozen) {
+                        this.playerMap[data.id].sprite.setTexture('snowman_with_red');
+                    } else {
+                        this.playerMap[data.id].sprite.setTexture(character);
+                    } break;
+                default:
+                    console.log("[client.on(frozen)] 오류 발생");
+            }
+        })
+
         // 소켓 이벤트 처리
         client.on('move', (data: { id: string; dir: string }) => {
-            const sprite = this.playerMap[data.id];
+            const sprite = this.playerMap[data.id].sprite;
             if (!sprite) return;  // 혹은 아직 안 만들어진 경우 무시
         
             // 1) 우선 이전 속도 리셋
             sprite.setVelocity(0);
+            const speed = 170;
 
-            const speed = 200;
+            let fileName = `${this.playerMap[data.id].character}_walk`;
         
             // 2) 받은 방향에 따라 속도 설정
             switch (data.dir) {
               case 'left':
                 sprite.setVelocityX(-speed);
+                sprite.anims.play(fileName, true);
                 break;
               case 'right':
                 sprite.setVelocityX(speed);
+                sprite.anims.play(fileName, true);
                 break;
               case 'up':
                 sprite.setVelocityY(-speed);
+                sprite.anims.play(fileName, true);
                 break;
               case 'down':
                 sprite.setVelocityY(speed);
+                sprite.anims.play(fileName, true);
+                // this.player.anims.play(fileName, true);
                 break;
               case 'stop':
                 // 아무것도 안 함 (이미 0이므로)
+                sprite.anims.stop();
                 break;
             }
           });
@@ -199,12 +258,12 @@ export class Game extends Scene {
 
         client.on('syncPosition', (data: { id: string, x: number, y: number }) => {
             if (data.id !== this.currentPlayerId) {
-                this.playerMap[data.id].x = data.x;
-                this.playerMap[data.id].y = data.y;
+                this.playerMap[data.id].sprite.x = data.x;
+                this.playerMap[data.id].sprite.y = data.y;
                 return;
             }
 
-            const sprite = this.playerMap[data.id];
+            const sprite = this.playerMap[data.id].sprite;
             if (!sprite) return;
 
             const dx = data.x - sprite.x;
@@ -222,7 +281,7 @@ export class Game extends Scene {
     }
 
     removePlayer(id: string) {
-        const sprite = this.playerMap[id];
+        const sprite = this.playerMap[id].sprite;
         if (!sprite) return;
         sprite.destroy();
         delete this.playerMap[id];
@@ -248,3 +307,4 @@ export class Game extends Scene {
         this.scene.start('GameOver');
     }
 }
+
