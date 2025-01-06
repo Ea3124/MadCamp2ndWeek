@@ -12,6 +12,7 @@ interface GameInitData {
 }
 
 export class Game extends Scene {
+    
     currentPlayerId: string;
     camera: Phaser.Cameras.Scene2D.Camera;
     background: Phaser.GameObjects.Image;
@@ -61,6 +62,9 @@ export class Game extends Scene {
         this.layer2 = map.createLayer('Tile Layer 2', [tileset1, tileset2, tileset3, tileset4, tileset5], 0, 0) as Phaser.Tilemaps.TilemapLayer;
         console.log('createLayer success');
 
+        this.player = this.physics.add.sprite(500, 500, 'executioner'); 
+        console.log('Player body:', this.player.body);
+    
         this.layer1.setCollisionByProperty({ collides: true });
         this.layer2.setCollisionByProperty({ collides: true });
         this.layer2.setDepth(2);
@@ -94,14 +98,25 @@ export class Game extends Scene {
         // 충돌 설정
         this.player.setCollideWorldBounds(true);
         this.player.setDepth(1);
+        console.log('Player visibility:', this.player.visible, 'Alpha:', this.player.alpha);
+        
+        this.cursors = this.input?.keyboard?.createCursorKeys()!;
 
         console.log('Game scene created successfully.');
+
+        // 스프라이트가 화면 범위 내에 있는지 확인
+        if (this.player.x > this.cameras.main.width || this.player.y > this.cameras.main.height) {
+            console.warn('Player is out of camera bounds.');
+        }
+
         EventBus.emit('current-scene-ready', this);
     }
 
     update(time: number, delta: number) {
         if (!this.player || !this.cursors) return;
 
+        let moving = false;
+      
         // 기존 이동 로직
         this.player.setVelocity(0);
         let moving = false;
@@ -124,7 +139,7 @@ export class Game extends Scene {
             client.emit('move', { dir: 'down' });
             moving = true;
         } else {
-            client.emit('move', { dir: 'stop' });
+          client.emit('move', { dir: 'stop' });
         }
 
         let fileName = `${this.myCharacter}_walk`;
