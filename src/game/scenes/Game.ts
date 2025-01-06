@@ -5,6 +5,12 @@ import { EventBus } from '../EventBus';
 import Phaser from 'phaser';
 import { client } from '../socket';  // socket.ts에서 import
 
+interface GameInitData {
+    map: string;
+    playerIndex?: number;
+}
+
+
 export class Game extends Scene {
     currentPlayerId: string;
 
@@ -17,6 +23,7 @@ export class Game extends Scene {
 
     // 온라인으로 접속한 플레이어들의 스프라이트 목록
     playerMap: { [key: string]: Phaser.Physics.Arcade.Sprite } = {};
+    playerIndex: number;
 
     // 방향키
     cursors: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -29,15 +36,10 @@ export class Game extends Scene {
 
     init(data: any) {
         this.map = data.map || 'defaultMap'; // 기본 맵 설정
+        this.playerIndex = data.playerIndex || 0;
     }
 
     preload() {
-        // 선택된 맵 로드
-        this.load.image(this.map, `assets/maps/${this.map}.png`);
-        this.load.image('human', 'assets/human.png');
-        this.load.spritesheet('princess', 'assets/princess.png', { frameWidth: 32, frameHeight: 32 });
-
-        // 기타 필요한 자산 로드
     }
 
     create() {
@@ -59,7 +61,28 @@ export class Game extends Scene {
         this.layer2 = map.createLayer('Tile Layer 2', [tileset1, tileset2, tileset3, tileset4, tileset5], 0, 0) as Phaser.Tilemaps.TilemapLayer;
         console.log('createLayer success');
 
-        this.player = this.physics.add.sprite(500, 500, 'executioner'); 
+        // this.player = this.physics.add.sprite(500, 500, 'executioner'); 
+        switch (this.playerIndex) {
+            case 0:
+                console.log('첫번째 플레이어');
+                this.player = this.physics.add.sprite(500, 500, 'princess'); 
+                break;
+            case 1:
+                console.log('두번째 플레이어');
+                this.player = this.physics.add.sprite(500, 500, 'knight');
+                break;
+            case 2:
+                console.log('세번째 플레이어');
+                this.player = this.physics.add.sprite(500, 500, 'executioner'); 
+                break;
+            case 3:
+                console.log('네번째 플레이어');
+                this.player = this.physics.add.sprite(500, 500, 'townfolk'); 
+                break; 
+            default:
+                console.log('???? 문제가 생김')
+                this.player = this.physics.add.sprite(500, 500, 'princess')  
+        }
         console.log('Player body:', this.player.body);
     
         this.layer1.setCollisionByProperty({ collides: true });
@@ -137,6 +160,8 @@ export class Game extends Scene {
         if (this.cursors.up.isDown) {
             this.player.setVelocityY(-200);
             moving = true;
+            this.player.setTexture('snowman_with_red');
+            return;
         } else if (this.cursors.down.isDown) {
             this.player.setVelocityY(200);
             moving = true;
@@ -172,8 +197,8 @@ export class Game extends Scene {
         });
 
         // (b) 새 플레이어가 들어왔을 때
-        client.on('newplayer', (player: { id: string, x: number, y: number }) => {
-            this.addNewPlayer(player.id, player.x, player.y);
+        client.on('newplayer', (player: { id: string, x: number, y: number, nickname: string, roomDetails: any }) => {
+            this.addNewPlayer(player.id, player.x, player.y, player.roomDetails);
         });
 
         // 소켓 이벤트 처리
@@ -221,11 +246,13 @@ export class Game extends Scene {
         });
     }
 
-    addNewPlayer(id: string, x: number, y: number) {
+    addNewPlayer(id: string, x: number, y: number, roomDetails: any) {
         // 이미 존재하면 무시
         if (this.playerMap[id]) return;
 
-        const size = Object.keys(this.playerMap).length;
+        console.log("[addNewPlayer] roomDetails: ", roomDetails);
+
+        const size = roomDetails[0]
         let sprite;
         switch (size) {
             case 0:

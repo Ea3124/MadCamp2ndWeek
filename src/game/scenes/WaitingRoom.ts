@@ -15,10 +15,9 @@ export class WaitingRoom extends Scene {
     roomName: string;
     nickname: string;
     map: string;
-
-    playersListText: GameObjects.Text;
     startButton: GameObjects.Image | null;
     isLeader: boolean;
+    playersListText: GameObjects.Text;
 
     constructor() {
         super('WaitingRoom');
@@ -79,9 +78,8 @@ export class WaitingRoom extends Scene {
 
         // 플레이어 목록 갱신
         this.updatePlayerList();
-
+        
         // ### 이벤트 리스너 설정 ###
-
         // 새 플레이어 들어옴
         client.on('newplayer', () => {
             this.updatePlayerList();
@@ -118,9 +116,15 @@ export class WaitingRoom extends Scene {
         });
 
         // 실제 게임 시작
-        client.on('startgame', () => {
-            // 실제 게임 씬으로 넘어가기
-            this.scene.start('Game', { map: this.map });
+        client.on('startgame', (playersInRoom) => {
+            console.log('Received player data:', playersInRoom);
+            const playerData = playersInRoom.find(player => player.id === client.id); // 자신의 데이터 추출
+            this.scene.start('Game', {
+            map: this.map,
+            playerIndex: playerData.playerIndex // 자신의 플레이어 인덱스 설정
+            });
+            // // 실제 게임 씬으로 넘어가기
+            // this.scene.start('Game', { map: this.map });
         });
 
         // ★ yourId 이벤트는 "소켓 ID 알림" 용도로만 쓸 것이면 아래처럼 단순 로그로 처리

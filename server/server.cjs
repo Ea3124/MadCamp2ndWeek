@@ -11,39 +11,31 @@ const io = require('socket.io')(server, {
   }
 });
 
-// 정적 파일 또는 라우팅 설정
+//정적 파일 또는 라우팅 설정
 app.get('/', (req, res) => {
   res.send('Hello MMO');
 });
 
-// 플레이어와 방 정보를 저장할 객체
-let players = {}; // { socketId: { x, y, roomId, nickname }, ... }
-let rooms = {};   // { roomName: { map, password, players: [socketId, ...], leader: socketId, status: 'waiting' | 'started' }, ... }
+// 플레이어와 방 정보를 저장 -> 이때 플레이어에 roomId를 부여해서 같은 방에 참여한 애들을 구분할 수 있게함.
+let players = {}; // { socketId: {x, y, roomDetails, nickname}, .. }  socketId를 key로, x, y, roomDetails, nickname을 value로
+// 이때, roomDetails = [roomName, playerIndex] 배열
+let rooms = {}; // {roomName: { map, password, player}}
 
-// 플레이어 초기화 함수
+
+//플레이어 초기화 함수
 function initializePlayer(socket, nickname) {
   if (!players[socket.id]) {
     players[socket.id] = {
       x: 500,
       y: 500,
-      roomId: null,
+      roomDetails: null,
       nickname: nickname || 'noname'
-    };
-    console.log(`[initializePlayer] Player: ${socket.id}, nickname: ${players[socket.id].nickname}`);
+    }; // player의 속성으로 x, y, roomDeatils, nickname 생성
+    console.log(`[initializePlayer] socket id = ${socket.id}, nickname: ${players[socket.id].nickname}`);
   }
 }
 
-// 충돌 검사 함수
-function checkCollision(player, newX, newY) {
-  return Object.values(players).some(p => {
-    if (p.id === player.id) return false; // 자신과의 충돌은 무시
-    const distance = Math.hypot(p.x - newX, p.y - newY);
-    return distance < 50; 
-  });
-}
-
-
-// 방 목록을 반환하는 헬퍼 함수
+// 방 목록 반환 함수
 function getRoomList() {
   return Object.keys(rooms).map((roomName) => {
     const room = rooms[roomName];
@@ -55,91 +47,133 @@ function getRoomList() {
       status: room.status
     };
   });
-}
 
-// 예) 1초마다 전체 플레이어 좌표를 syncPosition 이벤트로 전송
+  // ex)
+  // [
+  //   {
+  //     "roomName": "Room1",
+  //     "map": "Forest",
+  //     "playerCount": 3,
+  //     "passwordProtected": true,
+  //     "status": "waiting"
+  //   },
+  //   ...
+  // ]
+}
+  
+  
+// 1초마다 전체 플레이어 좌표를 syncPosition 이벤트로 전송
 setInterval(() => {
-  for (const [id, p] of Object.entries(players)) {
-    // roomId가 있을 경우, 그 방에만 보내거나, 전역으로 보내거나 결정은 자유
-    // 여기서는 간단히 모두에게 보낸다고 가정
-    io.emit('syncPosition', {
-      id,
+  for (const [id, p] of Object.entries(players)) { // players의 key-value쌍을 iterate. id = socket
+    // players 가 { socketId: {x, y, roomDetails, nickname}, .. } 니까 id가 socketId, p가  {x, y, roomDetails, nickname}
+    const roomDetails = p.roomDetails;
+    let roomName = null; // 일단 roomName를 null로 선언. 이후 roomDetails가 존재하면 바꿈.
+    if (roomDetails === null) {
+      console.log('[setInterval] roomDetails is null');
+    } else if (roomDetails == null) {
+      console.log('[setInterval] roomDetails is undefined');
+    } else {
+      roomName = roomDetails[0];
+    }
+
+    io.emit('syncPosition', { // 서버에 연결된 모든 클라이언트에 전송
+      id, 
       x: p.x,
-      y: p.y
+      y: p.y,
+      roomName: roomName
     });
   }
 }, 1000);
 
+
+
 io.on('connection', (socket) => {
-  console.log('A user connected:', socket.id);
-
-  // 클라이언트에게 자신의 socket.id 전송
+  console.log('[io.on(connection)] A new user connected: ', socket.id);
+  
+  // 클라이언트에게 본인의 socket.id 알려줌
   socket.emit('yourId', socket.id);
+  
 
-  // 클라이언트에서 닉네임을 포함하여 'newplayer'를 보냄
+  // *** 클라이언트로부터 받은 'newplayer' 이벤트 처리 ***
   socket.on('newplayer', (data) => {
-    const { nickname } = data || {};
-    initializePlayer(socket, nickname);
 
+    const { nickname } = data || {}; // data 객체에서 nickname 속성 추출 (즉, data.nickname)
+    console.log('[socket.on(newPlayer)] new player name: ', data);
+    initializePlayer(socket, nickname);
+    
     // 현재 접속 중인 모든 플레이어 목록
-    const allPlayersArr = Object.keys(players).map((id) => {
+    // ex) allPlayersArr = [ { id: 'player1', x: 100, y: 200, nickname: 'Alice' },{ id: 'player2', x: 150, y: 250, nickname: 'Bob' }]
+    const allPlayersArr = Object.keys(players).map((id) => { // .map으로 각 요소로 함수 실행 후 반환 값으로 새 배열생성
       const p = players[id];
-      return { id, x: p.x, y: p.y, nickname: p.nickname };
+      return { id, x: p.x, y: p.y, nickname: p.nickname};
     });
     socket.emit('allplayers', allPlayersArr);
 
-    // 본인의 ID를 알려줌
-    socket.emit('yourId', socket.id);
-
-    // 다른 모든 플레이어에게 새 플레이어 정보 전송
-    socket.broadcast.emit('newplayer', { id: socket.id, ...players[socket.id] });
+    // 클라이언트에게 'newplayer' 이벤트를 보냄
+    // socket.broadcast.emit('newplayer', { id: socket.id, ...players[socket.id] }); //...으로 객체 내의 속성을 펼침
+    socket.broadcast.emit('newplayer', {
+      id: socket.id,
+      x: players[socket.id].x,
+      y: players[socket.id].y,
+      nickname: players[socket.id].nickname,
+      roomDetails: players[socket.id].roomDetails || null
+    });
+    // ex)
+    // {
+    //   "id": "소켓아이디",
+    //   "x": 100,
+    //   "y": 200,
+    // "roomDetails":
+    //   "nickname": "Alice",
+    // } 
   });
 
-  // 'createroom' 이벤트 처리
+
+  // *** 'createroom' 이벤트 처리 ***
   socket.on('createroom', (data) => {
     const { roomName, map, password } = data;
 
     if (rooms[roomName]) {
       // 방이 이미 존재함
-      socket.emit('createroom_response', { success: false, message: '이미 존재하는 방 이름입니다.' });
+      socket.emit('createroom_response', { succes: false, message: '이미 존재하는 방 이름입니다. '});
       return;
     }
 
-    // 플레이어 초기화 (이미 초기화되어 있을 수도 있으므로)
+    if (!players[socket.id]) {
+      console.log('[socket.on(createroom)] createroom 처리중, 아직 newPlayer도착안함.')
+    }
+    // 클라이언트측의 newPlayer가 도착하기 이전이면, 안되었을수 있음. 근데 있을까 ?
     initializePlayer(socket, players[socket.id]?.nickname);
+    // 플레이어의 roomDetail 추가 
+    players[socket.id].roomDetails = [roomName, 0];
 
     // 새로운 방 생성
     rooms[roomName] = {
       map: map,
       password: password || null,
       players: [socket.id],
-      leader: socket.id,      // 방장 설정
-      status: 'waiting'       // 초기 상태는 대기 중
+      leader: socket.id, // 방장
+      status: 'waiting' // 초기상태는 waiting
     };
 
-    // 플레이어 roomId 설정
-  players[socket.id].roomId = roomName;
+    socket.join(roomName);
+    //socket을 roomName이라는 이름의 방에 조인 (자동생성)
+    // join 후, io.to(roomName).emit('message') 같은 방식으로 서버가 특정 방 클라이언트에만 메세지를 보낼 수 있음
 
-  // 소켓 join
-  socket.join(roomName);
+    // 클라이언트의 socket.id를 방장 소켓id로 함께 보냄
+    socket.emit('createroom_response', {
+      success: true,
+      roomName: roomName,
+      leader: socket.id
+    });
 
-  // => 클라이언트에게 "방장(socket.id)" 정보를 함께 보냄
-  socket.emit('createroom_response', { 
-    success: true, 
-    roomName: roomName, 
-    leader: socket.id
+    io.emit('roomlist_update', getRoomList());
+    console.log(`[socket.on(createroom)] 방 생성됨 = ${roomName}, leader = ${socket.id}`);
   });
 
-  io.emit('roomlist_update', getRoomList());
-  console.log(`방 생성됨: ${roomName}, leader=${socket.id}`);
-  });
 
-  // 'getrooms' 이벤트 처리 (방 목록 요청)
-  socket.on('getrooms', () => {
-    socket.emit('roomlist', getRoomList());
-  });
 
-  // 'joinroom' 이벤트 처리
+  // *** 'joinroom' 이벤트 처리 ***
   socket.on('joinroom', (data) => {
     const { roomName, password } = data;
     const room = rooms[roomName];
@@ -147,89 +181,85 @@ io.on('connection', (socket) => {
       socket.emit('joinroom_response', { success: false, message: '존재하지 않는 방입니다.' });
       return;
     }
-  
-    if (room.password && room.password !== password) {
-      socket.emit('joinroom_response', { success: false, message: '비밀번호가 틀렸습니다.' });
-      return;
-    }
     if (room.status !== 'waiting') {
-      socket.emit('joinroom_response', { success: false, message: '이미 게임이 시작된 방입니다.' });
+      socket.emit('joinroom_response', { success: false, message: '이미 게임이 시작된 방입니다. '});
       return;
     }
     if (room.players.length >= 4) {
-      socket.emit('joinroom_response', { success: false, message: '방이 꽉 찼습니다.' });
+      socket.emit('joinroom_response', { success: false, message: '방이 꽉 찼습니다.'});
       return;
     }
-  
-    initializePlayer(socket, players[socket.id]?.nickname);
+    
     room.players.push(socket.id);
-    players[socket.id].roomId = roomName;
+    playerIndex = room.players.length; // 0, 1, 2, 3
+    players[socket.id].roomDetails = [roomName, playerIndex];
     socket.join(roomName);
-  
-    // => joinroom_response에서 leader 정보도 함께 보내줌
-    socket.emit('joinroom_response', { 
-      success: true, 
-      roomName: roomName, 
+
+    // joinroom_response 성공
+    socket.emit('joinroom_response', {
+      success: true,
+      roomName: roomName,
       map: room.map,
       leader: room.leader
     });
-  
-    socket.to(roomName).emit('newplayer', { 
-      id: socket.id, 
-      x: players[socket.id].x, 
-      y: players[socket.id].y, 
-      nickname: players[socket.id].nickname 
+
+    // joinroom한 player에 대해 newplayer임을 알려줌.
+    socket.to(roomName).emit('newplayer', {
+      id: socket.id,
+      x: players[socket.id].x,
+      y: players[socket.id].y,
+      nickname: players[socket.id].nickname,
+      roomDetails: players[socket.id].roomDetails
     });
-  
+
     io.emit('roomlist_update', getRoomList());
-    console.log(`플레이어 ${socket.id}가 방 ${roomName}에 참여함`);
-  
-    if (room.players.length === 4) {
+    console.log(`[socket.on(joinroom)] 플레이어 ${socket.id}가 방 ${roomName}에 참여함`);
+
+    if (room.players.length == 4) { // 방 인원이 꽉 참.
       room.status = 'ready';
-      // => 4명 찼을 때 'room_ready'에도 leader를 함께 보내면 편하다
       io.to(roomName).emit('room_ready', {
         leader: room.leader
       });
       io.emit('roomlist_update', getRoomList());
-      console.log(`방 ${roomName}이(가) 꽉 찼습니다.`);
+      console.log(`[socket.on(createroom)] 방 ${roomName}이(가) 꽉 찼습니다.`);
     }
   });
-  
 
-  // 'startgame' 이벤트 처리 (방장이 게임 시작 버튼 클릭)
+  // *** 'startgame' 이벤트 처리 ***
   socket.on('startgame', (data) => {
     const { roomName } = data;
-
     const room = rooms[roomName];
+
     if (!room) {
-      socket.emit('startgame_response', { success: false, message: '존재하지 않는 방입니다.' });
+      socket.emit('startgame_response', { succes: false, message: '존재하지 않는 방입니다.' });
       return;
     }
-
     if (room.leader !== socket.id) {
-      socket.emit('startgame_response', { success: false, message: '게임을 시작할 권한이 없습니다.' });
+      socket.emit('startgame_response', { succes: false, message: '게임을 시작할 권한이 없습니다.' });
       return;
     }
-
     if (room.players.length < 4) {
-      socket.emit('startgame_response', { success: false, message: '플레이어가 충분하지 않습니다.' });
-      console.log('아직 4명이 다 모이지 않았습니다');
+      socket.emit('startgame_response', { succes: false, message: '플레이어가 충분하지 않습니다.' });
       return;
     }
 
-    // 방 상태를 'started'로 변경
+    // 게임 시작
     room.status = 'started';
-    io.to(roomName).emit('startgame'); // 방 내 모든 클라이언트에게 게임 시작 신호 전송
-    io.emit('roomlist_update', getRoomList()); // 방 목록 업데이트
-
-    console.log(`방 ${roomName}에서 게임을 시작합니다.`);
+    const playersInRoom = room.players.map(id => {
+      return { id, playerIndex: players[id].roomDetails[0] };
+    });
+    io.to(roomName).emit('startgame', playersInRoom); // 방 내 모든 클라이언트에게 게임 시작 신호 전송
+    
+    io.emit('roomlist_update', getRoomList());
+    console.log(`[socket.on(startgame)] 방 ${roomName}에서 게임을 시작합니다.`);
   });
 
-  // 'leaveroom' 이벤트 처리
+
+  // *** 'leaveroom' 이벤트 처리 ***
   socket.on('leaveroom', () => {
-    const roomName = players[socket.id]?.roomId;
+    const roomName = players[socket.id]?.roomDetails[0];
     if (!roomName) {
-      socket.emit('leaveroom_response', { success: false, message: '현재 방에 속해 있지 않습니다.' });
+      socket.emit('leaveroom_response', { success: false, message: '현재 방에 속해있지 않습니다.' });
       return;
     }
 
@@ -238,18 +268,18 @@ io.on('connection', (socket) => {
     if (room) {
       room.players = room.players.filter(id => id !== socket.id);
       socket.leave(roomName);
-      players[socket.id].roomId = null;
+      players[socket.id].roomDetails = null;
 
       // 방이 비었으면 삭제
       if (room.players.length === 0) {
         delete rooms[roomName];
         console.log(`방 ${roomName}이(가) 비어서 삭제됨.`);
       } else {
-        // 방장이 떠났다면 새로운 방장 지정
+        // 방장이 떠났다면 새로운 방장을 지정
         if (room.leader === socket.id) {
-          room.leader = room.players[0];
-          io.to(roomName).emit('new_leader', { leader: room.leader });
-          console.log(`방 ${roomName}의 새로운 방장: ${room.leader}`);
+          room.leader == room.players[0];
+          io.to(roomName).emit('new_leader', { leader: room.leader});
+          console.log(`[socket.on(leaveroom)] 방 ${roomName}의 새로운 방장: ${room.leader}`);
         }
 
         // 방 내 다른 플레이어들에게 플레이어가 떠났음을 알림
@@ -261,14 +291,13 @@ io.on('connection', (socket) => {
 
       // 모든 클라이언트에게 방 목록 업데이트 알림
       io.emit('roomlist_update', getRoomList());
-
       console.log(`플레이어 ${socket.id}가 방 ${roomName}을(를) 떠남`);
     } else {
       socket.emit('leaveroom_response', { success: false, message: '방이 존재하지 않습니다.' });
     }
   });
 
-  // 클라이언트에서 "click" 이벤트로 좌표를 전달받으면 갱신
+  // *** 클라이언트에서 "click" 이벤트로 좌표를 전달받으면 갱신 *** ??
   socket.on('click', (data) => {
     if (!players[socket.id]) return;
 
@@ -290,34 +319,10 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 'move' 이벤트 핸들러 수정 (방 내에서만 처리)
-  // socket.on('move', (data) => {
-  //   if (!players[socket.id]) return;
-  //   const roomName = players[socket.id].roomId;
-  //   if (!roomName) return;
-
-  //   let newX = players[socket.id].x;
-  //   let newY = players[socket.id].y;
-
-  //   switch (data.dir) {
-  //     case 'left': newX -= 5; break;
-  //     case 'right': newX += 5; break;
-  //     case 'up': newY -= 5; break;
-  //     case 'down': newY += 5; break;
-  //   }
-
-  //   if (!checkCollision(players[socket.id], newX, newY)) {
-  //     players[socket.id].x = newX;
-  //     players[socket.id].y = newY;
-  //     io.to(roomName).emit('move', { id: socket.id, x: newX, y: newY });
-  //   } else {
-  //     console.log(`플레이어 ${socket.id}의 이동이 충돌로 인해 취소됨.`);
-  //   }
-  // });
-
-  // (선택) move 이벤트에서 서버도 x,y를 업데이트해서 '대략적인' 위치를 저장
+  // *** 클라이언트에서 "move" 이벤트에서 서버도 x, y를 업데이트해서 '대략적인' 위치를 저장 ***
   socket.on('move', (data) => {
     if (!players[socket.id]) return;
+
     const roomName = players[socket.id].roomId;
     if (!roomName) return;
 
@@ -330,18 +335,15 @@ io.on('connection', (socket) => {
       case 'up':    players[socket.id].y -= speed; break;
       case 'down':  players[socket.id].y += speed; break;
       // stop이면 변화 없음
-    }
-
+    }     
     // 그리고 이 방향 정보를 그대로 방에 브로드캐스트
     io.to(roomName).emit('move', {
       id: socket.id,
       dir: data.dir,
-    });
+    });    
   });
 
-
-
-  // 연결 해제
+    // 연결 해제
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
 
@@ -379,7 +381,7 @@ io.on('connection', (socket) => {
     io.emit('remove', socket.id);
   });
 
-  // 'getplayersinroom' 이벤트 처리
+  // *** 'getplayersinroom' 이벤트 처리 ***
   socket.on('getplayersinroom', (data) => {
     const { roomName } = data;
     const room = rooms[roomName];
@@ -405,5 +407,6 @@ io.on('connection', (socket) => {
 });
 
 server.listen(3000, '0.0.0.0', () => {
-  console.log('listening on http://localhost:3000');
+  console.log('listening on http://localhost:3000'); 
+
 });

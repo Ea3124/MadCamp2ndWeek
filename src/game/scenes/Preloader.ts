@@ -40,34 +40,42 @@ export class Preloader extends Scene
         this.load.image('joinButton', 'joinButton.png');
         this.load.image('startButton', 'startButton.png');
         this.load.image('createButton', 'createButton.png');
-        // this.load.spritesheet('player', 'star.png', {
-        //     frameWidth: 20, // 각 프레임의 너비
-        //     frameHeight: 20, // 각 프레임의 높이
-        // });
+        this.load.spritesheet('snowman_with_red', 'images/players/snowman_with_red.png', {
+            frameWidth: 32, // 각 프레임의 너비
+            frameHeight: 64, // 각 프레임의 높이
+        });
+        this.load.spritesheet('snowman_with_yellow', 'images/players/snowman_with_yellow.png', {
+            frameWidth: 32, // 각 프레임의 너비
+            frameHeight: 64, // 각 프레임의 높이
+        });
+        this.load.spritesheet('snowman_with_green', 'images/players/snowman_with_green.png', {
+            frameWidth: 32, // 각 프레임의 너비
+            frameHeight: 64, // 각 프레임의 높이
+        });
 
+        //executioner 프레임 및 애니메이션 로드
         this.load.atlas(
             'executioner',
             'images/players/executioner.png',
             'images/players/executioner_atlas.json'
         );
         this.load.animation('executioner_anim', 'images/players/executioner_anim.json');
-        
+    
+        //princess 프레임 및 애니메이션 로드
         this.load.atlas(
             'princess',
             'images/players/princess.png',
             'images/players/princess_atlas.json'   
         );
 
-        this.load.atlas(
-            'princess',
-            'images/players/princess.png',
-            'images/players/princess_atlas.json'   
-        );
+        //knight 프레임 및 애니메이션 로드
         this.load.atlas(
             'knight',
             'images/players/knight.png',
             'images/players/knight_atlas.json'
         );
+
+        //townfolk 프레임 및 애니메이션 로드
         this.load.atlas(
             'townfolk',
             'images/players/townfolk.png',
