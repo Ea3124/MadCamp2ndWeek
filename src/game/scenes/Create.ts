@@ -82,9 +82,9 @@ export class Create extends Scene {
         this.roomNameInput = this.add.text(300, 200, '방 이름 입력', {
             fontFamily: 'Arial',
             fontSize: 24,
-            color: '#aaaaaa',
-            backgroundColor: '#333333',
-            padding: { left: 10, right: 10, top: 5, bottom: 5 }
+            color: '#ffFFFF',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)', // 배경색 반투명 설정
+            padding: { left: 10, right: 10, top: 8, bottom: 8 }
         }).setOrigin(0, 0.5).setInteractive();
 
         this.roomNameInput.on('pointerdown', () => {
@@ -126,8 +126,8 @@ export class Create extends Scene {
         this.passwordInput = this.add.text(300, 400, '비밀번호 입력 (선택)', {
             fontFamily: 'Arial',
             fontSize: 24,
-            color: '#aaaaaa',
-            backgroundColor: '#333333',
+            color: '#ffFFFF',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)', // 배경색 반투명 설정
             padding: { left: 10, right: 10, top: 5, bottom: 5 }
         }).setOrigin(0, 0.5).setInteractive();
 
@@ -170,14 +170,26 @@ export class Create extends Scene {
     // 입력 필드 스타일 업데이트
     updateInputStyles() {
         if (this.activeInput === 'roomName') {
-            this.roomNameInput.setStyle({ color: '#ffffff' });
-            this.passwordInput.setStyle({ color: '#aaaaaa' });
+            this.roomNameInput.setStyle({ color: '#ffffff',
+                backgroundColor: 'rgba(0, 0, 0, 0.1)', // 배경색 반투명 설정
+             });
+            this.passwordInput.setStyle({ color: '#ffffff',
+                backgroundColor: 'rgba(0, 0, 0, 0.1)', // 배경색 반투명 설정
+             });
         } else if (this.activeInput === 'password') {
-            this.roomNameInput.setStyle({ color: '#aaaaaa' });
-            this.passwordInput.setStyle({ color: '#ffffff' });
+            this.roomNameInput.setStyle({ color: '#ffffff',
+                backgroundColor: 'rgba(0, 0, 0, 0.1)', // 배경색 반투명 설정
+             });
+            this.passwordInput.setStyle({ color: '#ffffff',
+                backgroundColor: 'rgba(0, 0, 0, 0.1)', // 배경색 반투명 설정
+             });
         } else {
-            this.roomNameInput.setStyle({ color: '#aaaaaa' });
-            this.passwordInput.setStyle({ color: '#aaaaaa' });
+            this.roomNameInput.setStyle({ color: '#ffffff',
+                backgroundColor: 'rgba(0, 0, 0, 0.1)', // 배경색 반투명 설정
+             });
+            this.passwordInput.setStyle({ color: '#ffffff',
+                backgroundColor: 'rgba(0, 0, 0, 0.1)', // 배경색 반투명 설정
+             });
         }
     }
 
