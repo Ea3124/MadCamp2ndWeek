@@ -118,10 +118,11 @@ export class WaitingRoom extends Scene {
         // 실제 게임 시작
         client.on('startgame', (playersInRoom) => {
             console.log('Received player data:', playersInRoom);
-            const playerData = playersInRoom.find(player => player.id === client.id); // 자신의 데이터 추출
+            const myelement = playersInRoom.find(player => player.id === client.id); // 자신의 데이터 추출
             this.scene.start('Game', {
             map: this.map,
-            playerIndex: playerData.playerIndex // 자신의 플레이어 인덱스 설정
+            myId: myelement.id,
+            playersInRoom: playersInRoom  // 자신의 플레이어 인덱스 설정
             });
             // // 실제 게임 씬으로 넘어가기
             // this.scene.start('Game', { map: this.map });

@@ -1,0 +1,52 @@
+{
+    "anims": [
+        {
+            "key": "princess_walk",
+            "type": "frames",
+            "repeat": -1,
+            "frameRate": 12,
+            "frames": [
+                {
+                    "key": "princess",
+                    "frame": "princess_walk_1"
+                },
+                {
+                    "key": "princess",
+                    "frame": "princess_walk_2"
+                },
+                {
+                    "key": "princess",
+                    "frame": "princess_walk_3"
+                },
+                {
+                    "key": "princess",
+                    "frame": "princess_walk_4"
+                }
+            ]
+        },
+        {
+            "key": "princess_idle",
+            "type": "frames",
+            "repeat": -1,
+            "frameRate": 12,
+            "frames": [
+                {
+                    "key": "princess",
+                    "frame": "princess_idle_1"
+                },
+                {
+                    "key": "princess",
+                    "frame": "princess_idle_2"
+                },
+                {
+                    "key": "princess",
+                    "frame": "princess_idle_3"
+                },
+                {
+                    "key": "princess",
+                    "frame": "princess_idle_4"
+                }
+            ]
+        }
+    ]
+}

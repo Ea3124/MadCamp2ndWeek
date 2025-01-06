@@ -79,11 +79,10 @@ setInterval(() => {
     io.emit('syncPosition', { // 서버에 연결된 모든 클라이언트에 전송
       id, 
       x: p.x,
-      y: p.y,
-      roomName: roomName
+      y: p.y
     });
   }
-}, 1000);
+}, 10);
 
 
 
@@ -171,7 +170,10 @@ io.on('connection', (socket) => {
     console.log(`[socket.on(createroom)] 방 생성됨 = ${roomName}, leader = ${socket.id}`);
   });
 
-
+  // 'getrooms' 이벤트 처리 (방 목록 요청)
+  socket.on('getrooms', () => {
+    socket.emit('roomlist', getRoomList());
+  });
 
   // *** 'joinroom' 이벤트 처리 ***
   socket.on('joinroom', (data) => {
@@ -190,8 +192,10 @@ io.on('connection', (socket) => {
       return;
     }
     
-    room.players.push(socket.id);
     playerIndex = room.players.length; // 0, 1, 2, 3
+    console.log("playerIndex: ",playerIndex);
+    console.log("myId",socket.id);
+    room.players.push(socket.id);
     players[socket.id].roomDetails = [roomName, playerIndex];
     socket.join(roomName);
 
@@ -246,7 +250,7 @@ io.on('connection', (socket) => {
     // 게임 시작
     room.status = 'started';
     const playersInRoom = room.players.map(id => {
-      return { id, playerIndex: players[id].roomDetails[0] };
+      return { id, playerIndex: players[id].roomDetails[1] };
     });
     io.to(roomName).emit('startgame', playersInRoom); // 방 내 모든 클라이언트에게 게임 시작 신호 전송
     
@@ -297,35 +301,16 @@ io.on('connection', (socket) => {
     }
   });
 
-  // *** 클라이언트에서 "click" 이벤트로 좌표를 전달받으면 갱신 *** ??
-  socket.on('click', (data) => {
-    if (!players[socket.id]) return;
-
-    const roomName = players[socket.id].roomId;
-    if (roomName) {
-      players[socket.id].x = data.x;
-      players[socket.id].y = data.y;
-
-      console.log('click', data.x, data.y);
-
-      // 해당 방 내 모든 클라이언트에게 브로드캐스트
-      io.to(roomName).emit('move', { id: socket.id, x: data.x, y: data.y });
-    } else {
-      // 방에 속해 있지 않으면 모든 클라이언트에게 브로드캐스트
-      players[socket.id].x = data.x;
-      players[socket.id].y = data.y;
-
-      io.emit('move', { id: socket.id, x: data.x, y: data.y });
-    }
-  });
 
   // *** 클라이언트에서 "move" 이벤트에서 서버도 x, y를 업데이트해서 '대략적인' 위치를 저장 ***
   socket.on('move', (data) => {
     if (!players[socket.id]) return;
-
-    const roomName = players[socket.id].roomId;
+ 
+    const roomName = players[socket.id].roomDetails
+    ? players[socket.id].roomDetails[0]
+    : null;
+    
     if (!roomName) return;
-
     // data.dir = 'left'|'right'|'up'|'down'|'stop'
     // 간단히 속도 5로 계산
     const speed = 5;
@@ -343,7 +328,7 @@ io.on('connection', (socket) => {
     });    
   });
 
-    // 연결 해제
+  // 연결 해제
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
 
@@ -391,14 +376,16 @@ io.on('connection', (socket) => {
     }
 
     const playersInRoom = room.players.map(id => {
-      return { id, nickname: players[id].nickname };
+      return { id, nickname: players[id].nickname || null };
     });
 
     socket.emit('playersinroom', playersInRoom);
   });
 
   socket.on('reportPosition', (data) => {
+    console.log("players[socket.id]가 존재?")
     if (!players[socket.id]) return;
+    console.log("존재")
     players[socket.id].x = data.x;
     players[socket.id].y = data.y;
   });

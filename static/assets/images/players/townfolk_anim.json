@@ -1,0 +1,52 @@
+{
+    "anims": [
+        {
+            "key": "townfolk_idle",
+            "type": "frames",
+            "repeat": -1,
+            "frameRate": 12,
+            "frames": [
+                {
+                    "key": "townfolk",
+                    "frame": "townsfolk_m_idle_1"
+                },
+                {
+                    "key": "townfolk",
+                    "frame": "townsfolk_m_idle_2"
+                },
+                {
+                    "key": "townfolk",
+                    "frame": "townsfolk_m_idle_3"
+                },
+                {
+                    "key": "townfolk",
+                    "frame": "townsfolk_m_idle_4"
+                }
+            ]
+        },
+        {
+            "key": "townfolk_walk",
+            "type": "frames",
+            "repeat": -1,
+            "frameRate": 12,
+            "frames": [
+                {
+                    "key": "townfolk",
+                    "frame": "townsfolk_m_walk_1"
+                },
+                {
+                    "key": "townfolk",
+                    "frame": "townsfolk_m_walk_2"
+                },
+                {
+                    "key": "townfolk",
+                    "frame": "townsfolk_m_walk_3"
+                },
+                {
+                    "key": "townfolk",
+                    "frame": "townsfolk_m_walk_4"
+                }
+            ]
+        }
+    ]
+}

@@ -60,27 +60,31 @@ export class Preloader extends Scene
             'images/players/executioner_atlas.json'
         );
         this.load.animation('executioner_anim', 'images/players/executioner_anim.json');
-    
+        
         //princess 프레임 및 애니메이션 로드
         this.load.atlas(
             'princess',
             'images/players/princess.png',
             'images/players/princess_atlas.json'   
         );
-
+        this.load.animation('princess_anim', 'images/players/princess_anim.json');
+        
         //knight 프레임 및 애니메이션 로드
         this.load.atlas(
             'knight',
             'images/players/knight.png',
             'images/players/knight_atlas.json'
         );
-
+        this.load.animation('knight_anim', 'images/players/knight_anim.json');
+        
         //townfolk 프레임 및 애니메이션 로드
         this.load.atlas(
             'townfolk',
             'images/players/townfolk.png',
             'images/players/townfolk_atlas.json'
         );
+        this.load.animation('townfolk_anim', 'images/players/townfolk_anim.json');
+
         this.load.image('tile1', 'images/IceTileset.png');
         this.load.image('tile2', 'images/tf_winter_tileA2.png');
         this.load.image('tile3', 'images/tf_winter_tileA5_cave.png');
