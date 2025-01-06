@@ -43,11 +43,10 @@ export class Intro extends Scene {
         }).setOrigin(0.5).setDepth(100);
 
         // joinButton
+
         this.joinButton = this.add.image(400, 420, 'joinButton').setInteractive();
-        this.joinButton.on('pointerdown', () => {
-            this.handleJoinGame();
-        });
-        this.add.text(450, 420, 'Join Game', {
+        
+        let joinButtonText = this.add.text(450, 420, 'Join Game', {
             fontFamily: 'Arial Black',
             fontSize: 24,
             color: '#ffffff',
@@ -55,13 +54,25 @@ export class Intro extends Scene {
             strokeThickness: 4,
             align: 'left'
         }).setOrigin(0, 0.5).setDepth(100);
+
+        this.joinButton.on('pointerdown', () => {
+            this.handleJoinGame();
+            this.joinButton.setTint(0xaaaaaa);  // 버튼에 음영 추가
+        });
+        this.joinButton.on('pointerover', () => {
+            this.joinButton.setScale(1.1);
+            joinButtonText.setScale(1.1);  // 텍스트 크기도 10% 증가
+        });
+        this.joinButton.on('pointerout', () => {
+            this.joinButton.setScale(1.0);
+            joinButtonText.setScale(1.0);
+            this.joinButton.clearTint();  // 음영 제거
+        });
+        
 
         // createButton
         this.createButton = this.add.image(400, 520, 'createButton').setInteractive();
-        this.createButton.on('pointerdown', () => {
-            this.handleCreateGame();
-        });
-        this.add.text(450, 520, 'Create Game', {
+        let createButtonText = this.add.text(450, 520, 'Create Game', {
             fontFamily: 'Arial Black',
             fontSize: 24,
             color: '#ffffff',
@@ -70,14 +81,28 @@ export class Intro extends Scene {
             align: 'left'
         }).setOrigin(0, 0.5).setDepth(100);
 
+        this.createButton.on('pointerdown', () => {
+            this.handleCreateGame();
+            this.createButton.setTint(0xaaaaaa);  // 버튼에 음영 추가
+        });
+        this.createButton.on('pointerover', () => {
+            this.createButton.setScale(1.1);
+            createButtonText.setScale(1.1);  // 텍스트 크기도 10% 증가
+        });
+        this.createButton.on('pointerout', () => {
+            this.createButton.setScale(1.0);
+            createButtonText.setScale(1.0);
+            this.createButton.clearTint();  // 음영 제거
+        });
+
         // 닉네임 입력 텍스트 생성
-        this.nicknameText = this.add.text(512, 300, 'Enter your nickname', {
+        this.nicknameText = this.add.text(512, 300, '닉네임을 입력하세요', {
             fontFamily: 'Arial',
             fontSize: 24,
-            color: '#ffffff',
-            backgroundColor: '#000000',
-            padding: { left: 10, right: 10, top: 5, bottom: 5 }
-        }).setOrigin(0.5).setInteractive();
+            color: '#00FFFF',
+            backgroundColor: '#f00f0f',
+            padding: { left: 20, right: 20, top: 15, bottom: 15 }
+        }).setOrigin(0.5,0.5).setInteractive();
 
         this.nicknameText.on('pointerdown', () => {
             this.setNicknameActive(true);

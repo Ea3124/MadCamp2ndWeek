@@ -117,7 +117,7 @@ export class Create extends Scene {
         this.updateMapOptions();
 
         // 비밀번호 (선택)
-        this.passwordText = this.add.text(200, 400, '비밀번호 (선택):', {
+        this.passwordText = this.add.text(200, 400, '비밀번호:', {
             fontFamily: 'Arial',
             fontSize: 24,
             color: '#ffffff'
