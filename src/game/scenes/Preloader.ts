@@ -40,6 +40,7 @@ export class Preloader extends Scene
         this.load.image('joinButton', 'joinButton.png');
         this.load.image('startButton', 'startButton.png');
         this.load.image('createButton', 'createButton.png');
+        
         this.load.spritesheet('snowman_with_red', 'images/players/snowman_with_red.png', {
             frameWidth: 32, // 각 프레임의 너비
             frameHeight: 64, // 각 프레임의 높이
