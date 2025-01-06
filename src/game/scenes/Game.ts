@@ -16,7 +16,7 @@ export class Game extends Scene {
     currentPlayerId: string;
     camera: Phaser.Cameras.Scene2D.Camera;
     background: Phaser.GameObjects.Image;
-    gameText: Phaser.GameObjects.Text;
+    // gameText: Phaser.GameObjects.Text;
     player: Phaser.Physics.Arcade.Sprite;        
     private layer1!: Phaser.Tilemaps.TilemapLayer;
     private layer2!: Phaser.Tilemaps.TilemapLayer;
@@ -103,7 +103,7 @@ export class Game extends Scene {
         this.camera.setBackgroundColor(0x000000);
 
         // 선택된 맵을 배경으로 설정
-        this.background = this.add.image(512, 384, this.map).setAlpha(0.5);
+        // this.background = this.add.image(512, 384, this.map).setAlpha(0.5);
 
         this.playersInRoom.forEach((p: { id: string; playerIndex: number }, i: number) => {
             // 자기 자신이면 pass
