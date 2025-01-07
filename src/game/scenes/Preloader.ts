@@ -53,6 +53,10 @@ export class Preloader extends Scene
             frameWidth: 32, // 각 프레임의 너비
             frameHeight: 64, // 각 프레임의 높이
         });
+        this.load.spritesheet('dead_snowman', 'images/players/dead_snowman.png', {
+            frameWidth: 32, // 각 프레임의 너비
+            frameHeight: 64, // 각 프레임의 높이
+        });
 
         //executioner 프레임 및 애니메이션 로드
         this.load.atlas(

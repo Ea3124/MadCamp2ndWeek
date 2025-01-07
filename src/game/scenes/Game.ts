@@ -12,7 +12,6 @@ interface GameInitData {
 }
 
 
-
 export class Game extends Scene {
     
     currentPlayerId: string;
@@ -24,7 +23,7 @@ export class Game extends Scene {
     private layer2!: Phaser.Tilemaps.TilemapLayer;
 
     // 온라인으로 접속한 플레이어들의 스프라이트 목록
-    playerMap: { [key: string]: { sprite: Phaser.Physics.Arcade.Sprite, character: string } } = {};
+    playerMap: { [key: string]: { sprite: Phaser.Physics.Arcade.Sprite, character: string, isFrozen: boolean, isDead: boolean } } = {};
     private playersGroup!: Phaser.Physics.Arcade.Group;
     playersInRoom: any;
     playerIndex: number;
@@ -34,6 +33,8 @@ export class Game extends Scene {
 
     isFrozen: boolean = false; // 얼음 상태 관리
     overlapCooldown: boolean;
+
+    isDead: boolean = false;
 
     isTaggerFrozen: boolean = false; // 술래 움직임 제한 상태
     taggerId: string; // 술래의 socket ID
@@ -63,6 +64,7 @@ export class Game extends Scene {
         this.playersInRoom = data.playersInRoom;
         this.playerIndex = (data.playersInRoom).findIndex( element => element.id === this.currentPlayerId);
         console.log(`index: ${this.playerIndex}, id: ${this.currentPlayerId}`);
+        this.isDead = false;
     }
 
     create() {
@@ -89,12 +91,6 @@ export class Game extends Scene {
         this.player = player;
         console.log('Player body:', this.player.body);
 
-        // 만약 내가 술래라면,
-        if (this.playerIndex === 2) {
-            this.taggerId = this.currentPlayerId; // 이미 createCharacter에서 넣어줬지만 한 번 더 넣어줌.
-            this.displayTaggerMessage();  
-        }
-    
         this.camera = this.cameras.main;
         this.camera.setBackgroundColor(0x000000);
 
@@ -104,15 +100,21 @@ export class Game extends Scene {
         this.playersInRoom.forEach((p: { id: string; playerIndex: number }, i: number) => {
             // 자기 자신이면 pass
             if (p.id === this.currentPlayerId) {
-                this.playerMap[this.currentPlayerId] = {sprite: this.player, character: this.myCharacter};
+                this.playerMap[this.currentPlayerId] = {sprite: this.player, character: this.myCharacter, isFrozen: false, isDead: false};
                 return; 
             }
             
             const { texture: someTexture, sprite: otherSprite } = this.createCharacter(p.id, p.playerIndex, 500, 500);
             
             // playerMap에 등록해서 추후 위치 갱신 등에서 참조
-            this.playerMap[p.id] = {sprite: otherSprite, character: someTexture};
+            this.playerMap[p.id] = {sprite: otherSprite, character: someTexture, isFrozen: false, isDead: false};
         });
+
+        // 만약 내가 술래라면,
+        if (this.playerIndex === 2) {
+            this.taggerId = this.currentPlayerId; // 이미 createCharacter에서 넣어줬지만 한 번 더 넣어줌.
+            this.displayTaggerMessage();  
+        }
 
         // 위에서 playerMap[id]에 모든 유저가 저장된 뒤에,
         this.playersGroup = this.physics.add.group({
@@ -141,7 +143,9 @@ export class Game extends Scene {
 
         // '얼음' 상태 토글 이벤트
         this.input.keyboard?.on('keydown-F', () => {
-            this.isFrozen = !this.isFrozen; // F 키로 얼음 상태 토글
+            this.isFrozen = true; // F 키로 얼음 상태로 만듦.
+            this.playerMap[this.currentPlayerId].isFrozen = true;
+            if (this.isDead) return;
             // 해당 눈사람 이미지 모두 변경시키기
             if (this.isFrozen) {
                 this.player.setVelocity(0); // 얼음 상태면 움직임을 멈춤
@@ -161,10 +165,7 @@ export class Game extends Scene {
                 // this.player.setTexture('snowman_with_red');
                 client.emit('frozen', true);
                 //얼음 상태이면 눈사람으로 변신.
-            } else {
-                this.player.setTexture(this.myCharacter);
-                client.emit('frozen', false);
-            }
+            } 
         });
         
 
@@ -193,7 +194,9 @@ export class Game extends Scene {
     }
 
     update(time: number, delta: number) {
+        if (this.isDead) return;
         if (!this.player || !this.cursors) return;
+        // isFrozen 이 true이면, 안 움직이도록 함.
         if (this.isFrozen) {
             client.emit('move', { dir: 'stop' });
             this.player.anims.stop();
@@ -295,8 +298,7 @@ export class Game extends Scene {
         this.overlapCooldown = true;
         setTimeout(() => {
             this.overlapCooldown = false;
-        }, 1000);
-        
+        }, 1000); 
     }
 
     findPlayerIdBySprite(sprite: Phaser.Physics.Arcade.Sprite) : string | null {
@@ -319,10 +321,13 @@ export class Game extends Scene {
         client.off('move');
         client.off('remove');
         client.off('syncPosition');
+        client.off('timerStart');
+        client.off('timerUpdate');
+        client.off('timerEnd');
 
         client.on('timerStart', () => {
             console.log('time_start in client');
-            this.displayCountdownText(10)
+            this.displayCountdownText(10);
         });
 
         client.on('timerUpdate', (data) => {
@@ -339,10 +344,44 @@ export class Game extends Scene {
             }
         });
 
+        client.on('playerOut', (data) => {
+            // if (this.isDead) return;
+            const playerId = data;
+            this.playerMap[playerId].isDead = true;
+            if (this.currentPlayerId == playerId) {
+                this.isDead = true;
+            }
+            this.playerMap[playerId].sprite.setTexture('dead_snowman')
+            console.log(`플레이어 ${playerId}가 탈락됨`)
+        })
+
         client.on('frozen', (data) => {
+            // if (this.isDead) return;
             const isFrozen = data.isFrozen;
+            const id = data.id;
             const character = this.playerMap[data.id].character;
-            console.log("fronzen: client 들어옴");
+
+            // if ( !isFrozen ) { // 땡이 들어옴.
+            //     if ( !this.playerMap[id].isFrozen ) { // 이미 땡 상태임.
+            //         return;
+            //     }
+            // }
+
+
+            // 이미 해당 상태라면 추가 처리 없이 종료
+            if (this.playerMap[id].isFrozen === isFrozen) {
+                console.log("No change in frozen state for player:", id);
+                return; // 이 이벤트에 대한 처리를 여기서 종료
+            }
+
+            this.playerMap[id].isFrozen = isFrozen;
+
+            if (id == this.currentPlayerId ) {
+                this.isFrozen = isFrozen;
+            }
+            console.log("Frozen state changed for player:", id);
+
+
             switch (character) {
                 case 'princess': 
                     if (isFrozen) {
@@ -362,6 +401,12 @@ export class Game extends Scene {
                     } else {
                         this.playerMap[data.id].sprite.setTexture(character);
                     } break;
+                case 'executioner': 
+                    if (isFrozen) {
+                        console.log("술래가 frozen 상태");
+                    } else {
+                        console.log("술래가 frozen 해제 상태");
+                    } break;
                 default:
                     console.log("[client.on(frozen)] 오류 발생");
             }
@@ -370,6 +415,7 @@ export class Game extends Scene {
         // 소켓 이벤트 처리
         client.on('move', (data: { id: string; dir: string }) => {
             const sprite = this.playerMap[data.id].sprite;
+            // if (this.isDead) return;
             if (!sprite) return;  // 혹은 아직 안 만들어진 경우 무시
         
             // 1) 우선 이전 속도 리셋
