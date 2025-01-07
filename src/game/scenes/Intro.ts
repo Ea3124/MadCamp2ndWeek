@@ -5,7 +5,7 @@ import { client } from '../socket';
 
 export class Intro extends Scene {
     background: GameObjects.Image;
-    title: GameObjects.Text;
+    title: GameObjects.Image;
 
     // 버튼
     joinButton: GameObjects.Image;
@@ -26,6 +26,7 @@ export class Intro extends Scene {
         this.load.image('background', 'assets/images/background.png');
         this.load.image('joinButton', 'assets/images/joinButton.png');
         this.load.image('createButton', 'assets/images/createButton.png');
+        this.load.image('logo3', 'assets/images/logo3.png');
     }
 
     create() {
@@ -33,14 +34,7 @@ export class Intro extends Scene {
         this.background = this.add.image(512, 384, 'background');
 
         // 타이틀
-        this.title = this.add.text(512, 150, '얼음 땡', {
-            fontFamily: 'Arial Black',
-            fontSize: 48,
-            color: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 8,
-            align: 'center'
-        }).setOrigin(0.5).setDepth(100);
+        this.title = this.add.image(512, 150, 'logo3').setOrigin(0.5).setDepth(100);
 
         // joinButton
 
@@ -96,11 +90,11 @@ export class Intro extends Scene {
         });
 
         // 닉네임 입력 텍스트 생성
-        this.nicknameText = this.add.text(512, 300, '닉네임을 입력하세요', {
+        this.nicknameText = this.add.text(512, 300, 'Write your Nickname', {
             fontFamily: 'Arial',
             fontSize: 24,
-            color: '#00FFFF',
-            backgroundColor: '#f00f0f',
+            color: '#ffFFFF',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)', // 배경색 반투명 설정
             padding: { left: 20, right: 20, top: 15, bottom: 15 }
         }).setOrigin(0.5,0.5).setInteractive();
 
@@ -143,9 +137,9 @@ export class Intro extends Scene {
     setNicknameActive(active: boolean) {
         this.isNicknameActive = active;
         if (active) {
-            this.nicknameText.setStyle({ backgroundColor: '#555555' });
+            this.nicknameText.setStyle({ backgroundColor: 'rgba(0, 0, 0, 0.1)' });
         } else {
-            this.nicknameText.setStyle({ backgroundColor: '#000000' });
+            this.nicknameText.setStyle({ backgroundColor: 'rgba(255, 255, 255, 0.1)' });
         }
     }
 

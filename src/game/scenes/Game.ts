@@ -34,6 +34,14 @@ export class Game extends Scene {
     overlapCooldown: boolean;
     // isTagger: boolean = false; // 술래인지 유무 나타냄.
 
+    // --------- 추가: 타이머 관련 프로퍼티 ---------
+    // 3분 = 180초 (ms 단위로는 180*1000 = 180000)
+    private GAME_DURATION: number = 5 * 1000; 
+    private startOverlay!: Phaser.GameObjects.Rectangle;
+    private startText!: Phaser.GameObjects.Text;
+    private endOverlay!: Phaser.GameObjects.Rectangle;
+    private endText!: Phaser.GameObjects.Text;
+
 
     constructor() {
         super('Game');
@@ -145,6 +153,22 @@ export class Game extends Scene {
         
 
         this.cursors = this.input?.keyboard?.createCursorKeys()!;
+
+        // -----------------------------
+        // 1) 게임 시작 시 어둑한 배경 + "Game Start!" 표시
+        // -----------------------------
+        this.showGameStartOverlay();
+
+        // -----------------------------
+        // 2) 3분 뒤에 "Game end!" 표시
+        // -----------------------------
+        this.time.addEvent({
+            delay: this.GAME_DURATION, 
+            callback: () => {
+                this.showGameEndText();
+            },
+            callbackScope: this
+        });
 
         console.log('Game scene created successfully.');
 
@@ -354,6 +378,80 @@ export class Game extends Scene {
         if (this.layer2) this.physics.add.collider(sprite, this.layer2);
         return { texture, sprite };
     }        
+
+    // -----------------------------
+    //  (추가) 게임 시작 시 오버레이를 깔고 텍스트 표시
+    // -----------------------------
+    private showGameStartOverlay() {
+        const { width, height } = this.sys.game.canvas;
+        // 살짝 어두워진 반투명 사각형(씬 전체 덮음)
+        this.startOverlay = this.add.rectangle(
+            width / 2, 
+            height / 2, 
+            width, 
+            height, 
+            0x000000, 
+            0.4
+        );
+        this.startOverlay.setScrollFactor(0);  
+        this.startOverlay.setDepth(100);
+        
+        // 중앙에 "Game Start!" 텍스트
+        this.startText = this.add.text(
+            width / 2,
+            height / 2,
+            'Game Start!',
+            {
+                fontSize: '40px',
+                color: '#ffffff',
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5);
+        this.startText.setScrollFactor(0);
+        this.startText.setDepth(101);
+
+        // 원하는 시점에 제거 (예: 1초 후)
+        this.time.delayedCall(1000, () => {
+            this.startOverlay.destroy();
+            this.startText.destroy();
+        });
+    }
+
+    // -----------------------------
+    //  (추가) 3분 뒤 표시할 텍스트
+    // -----------------------------
+    private showGameEndText() {
+        const { width, height } = this.sys.game.canvas;
+
+        this.endOverlay = this.add.rectangle(
+            width / 2, 
+            height / 2, 
+            width, 
+            height, 
+            0x000000, 
+            0.4
+        );
+        this.endOverlay.setScrollFactor(0);  
+        this.endOverlay.setDepth(100);
+
+        this.endText = this.add.text(
+            width / 2,
+            height / 2,
+            'Game end!',
+            {
+                fontSize: '40px',
+                color: '#ff0000',
+                fontStyle: 'bold',
+                backgroundColor: '#000000'
+            }
+        )
+        .setOrigin(0.5)
+        .setDepth(200);
+        this.endText.setScrollFactor(0);
+
+        // 필요하다면 씬 전환이나 다른 로직 수행도 가능
+        this.time.delayedCall(2000, () => { this.changeScene(); });
+    }
     
 
     changeScene() {
