@@ -24,16 +24,19 @@
         "build": "node log.js build & vite build --config vite/config.prod.mjs",
         "dev-nolog": "vite --config vite/config.dev.mjs",
         "build-nolog": "vite build --config vite/config.prod.mjs",
-        "preview": "vite preview --outDir build"
+        "preview": "vite preview --outDir build",
+        "migrate": "node server/migration.cjs"
     },
     "devDependencies": {
         "@sveltejs/adapter-auto": "^3.2.0",
         "@sveltejs/adapter-static": "^3.0.1",
         "@sveltejs/kit": "^2.5.8",
         "@sveltejs/vite-plugin-svelte": "^3.1.0",
+        "@types/pg": "^8.11.10",
         "svelte": "^4.2.17",
         "svelte-check": "^4.0.2",
         "terser": "^5.31.0",
+        "ts-node-dev": "^2.0.0",
         "tslib": "^2.6.2",
         "typescript": "^5.4.5",
         "vite": "^5.2.11"
@@ -41,9 +44,11 @@
     "type": "module",
     "dependencies": {
         "cookie": "^1.0.2",
+        "dotenv": "^16.4.7",
+        "express": "^4.21.2",
+        "pg": "^8.13.1",
         "phaser": "^3.87.0",
         "phaser-matter-collision-plugin": "^1.0.0",
-        "express": "^4.21.2",
         "socket.io": "^4.8.1",
         "socket.io-client": "^4.8.1"
     }

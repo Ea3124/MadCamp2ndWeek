@@ -1,8 +1,44 @@
 // server/server.cjs
+require('dotenv').config(); // dotenv 불러오기
 const express = require('express');
 const http = require('http');
 
+// 1) pg 모듈에서 Pool 가져오기
+const { Pool } = require('pg');
+
 const app = express();
+const port = 3000; // 예시
+
+// 2) Pool 인스턴스 생성
+const pool = new Pool({
+  host: process.env.POSTGRES_HOST,     // localhost
+  port: process.env.POSTGRES_PORT,     // 5432
+  user: process.env.POSTGRES_USER,     // test
+  password: process.env.POSTGRES_PASSWORD, // mysecretpassword
+  database: process.env.POSTGRES_DB    // mydb
+});
+
+// 3) DB 연결 테스트 (선택)
+pool.connect((err, client, release) => {
+  if (err) {
+    return console.error('PostgreSQL 연결 에러:', err);
+  }
+  console.log('PostgreSQL 연결 성공!');
+  release();
+});
+
+// 4) API 라우터 예시
+app.get('/api/users', async (req, res) => {
+  try {
+    // 쿼리 예시: users 테이블에서 모든 행 가져오기
+    const result = await pool.query('SELECT * FROM users');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('쿼리 실행 에러:', error);
+    res.status(500).json({ error: 'DB 에러' });
+  }
+});
+
 const server = http.createServer(app);
 const io = require('socket.io')(server, {
   cors: {
