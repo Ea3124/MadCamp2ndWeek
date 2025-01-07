@@ -11,6 +11,8 @@ interface GameInitData {
     playersInRoom: any; // 정확하게 바꿀것.
 }
 
+
+
 export class Game extends Scene {
     
     currentPlayerId: string;
@@ -32,11 +34,19 @@ export class Game extends Scene {
 
     isFrozen: boolean = false; // 얼음 상태 관리
     overlapCooldown: boolean;
-    // isTagger: boolean = false; // 술래인지 유무 나타냄.
+
+    isTaggerFrozen: boolean = false; // 술래 움직임 제한 상태
+    taggerId: string; // 술래의 socket ID
+    taggerFrozenText!: Phaser.GameObjects.Text; // 술래에게 표시할 텍스트
+
+    taggerCountdownText!: Phaser.GameObjects.Text; // 타이머 텍스트
+    taggerCountdown: number = 10; // 술래가 움직일 수 없는 시간 (10초)
+
+
 
     // --------- 추가: 타이머 관련 프로퍼티 ---------
     // 3분 = 180초 (ms 단위로는 180*1000 = 180000)
-    private GAME_DURATION: number = 5 * 1000; 
+    private GAME_DURATION: number = 180000; 
     private startOverlay!: Phaser.GameObjects.Rectangle;
     private startText!: Phaser.GameObjects.Text;
     private endOverlay!: Phaser.GameObjects.Rectangle;
@@ -74,10 +84,16 @@ export class Game extends Scene {
         this.layer2.setCollisionByProperty({ collides: true });
         this.layer2.setDepth(2);
 
-        const { texture: character, sprite: player } = this.createCharacter(this.playerIndex, 500, 500);
+        const { texture: character, sprite: player } = this.createCharacter(this.currentPlayerId, this.playerIndex, 500, 500);
         this.myCharacter = character;
         this.player = player;
         console.log('Player body:', this.player.body);
+
+        // 만약 내가 술래라면,
+        if (this.playerIndex === 2) {
+            this.taggerId = this.currentPlayerId; // 이미 createCharacter에서 넣어줬지만 한 번 더 넣어줌.
+            this.displayTaggerMessage();  
+        }
     
         this.camera = this.cameras.main;
         this.camera.setBackgroundColor(0x000000);
@@ -92,7 +108,7 @@ export class Game extends Scene {
                 return; 
             }
             
-            const { texture: someTexture, sprite: otherSprite } = this.createCharacter(p.playerIndex, 500, 500);
+            const { texture: someTexture, sprite: otherSprite } = this.createCharacter(p.id, p.playerIndex, 500, 500);
             
             // playerMap에 등록해서 추후 위치 갱신 등에서 참조
             this.playerMap[p.id] = {sprite: otherSprite, character: someTexture};
@@ -158,6 +174,7 @@ export class Game extends Scene {
         // 1) 게임 시작 시 어둑한 배경 + "Game Start!" 표시
         // -----------------------------
         this.showGameStartOverlay();
+        
 
         // -----------------------------
         // 2) 3분 뒤에 "Game end!" 표시
@@ -221,6 +238,40 @@ export class Game extends Scene {
             client.emit('reportPosition', { x: this.player.x, y: this.player.y });
         }  
     }
+
+    displayTaggerMessage() {
+        const { width, height } = this.sys.game.canvas;
+        this.taggerFrozenText = this.add.text(width / 2, height / 2, '당신은 술래입니다! 10초 동안 움직일 수 없습니다!', {
+            fontSize: '24px',
+            color: '#ffffff',
+            backgroundColor: '#ff0000'
+        }).setOrigin(0.5);
+
+        this.isTaggerFrozen = true; // 술래 움직임 제한 시작
+        this.isFrozen = true;
+        client.emit('frozen', true);
+        client.emit('startGameTimer', 10000 );  // 술래가 타이머 시작을 요청.
+        console.log('startGameTimer emitted');
+
+        this.time.delayedCall(10000, () => {
+            this.isTaggerFrozen = false; // 10초 후 움직임 제한 해제
+            this.isFrozen = false;
+            client.emit('frozen', false);
+            this.taggerFrozenText.destroy(); // 텍스트 제거
+            console.log('타이머 해제');
+        });
+    }
+
+    displayCountdownText(countdown: number) {
+        const { width, height } = this.sys.game.canvas;
+        this.taggerCountdownText = this.add.text(width / 2, height * 0.1, `Timer: ${countdown}s`, {
+            fontSize: '32px',
+            color: '#000000',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.taggerCountdownText.setScrollFactor(0);
+        this.taggerCountdownText.setDepth(200);
+    }
     
     handlePlayerOverlap(obj1: Phaser.Types.Physics.Arcade.GameObjectWithBody, obj2: Phaser.Types.Physics.Arcade.GameObjectWithBody){
         // 두 스프라이트가 누군지 식별
@@ -261,6 +312,32 @@ export class Game extends Scene {
      * 소켓 이벤트들을 모아서 처리
      */
     handleSocketEvents() {
+        client.off('timerStart');
+        client.off('timerUpdate');
+        client.off('timerEnd');
+        client.off('frozen');
+        client.off('move');
+        client.off('remove');
+        client.off('syncPosition');
+
+        client.on('timerStart', () => {
+            console.log('time_start in client');
+            this.displayCountdownText(10)
+        });
+
+        client.on('timerUpdate', (data) => {
+            const { countdown } = data;
+            this.taggerCountdownText.setText(`Timer: ${countdown}s`);
+        });
+        
+        client.on('timerEnd', () => {
+            if (this.taggerCountdownText) {
+                this.taggerCountdownText.setText('Time\'s up!');
+                setTimeout(() => {
+                    this.taggerCountdownText.destroy();
+                }, 2000);
+            }
+        });
 
         client.on('frozen', (data) => {
             const isFrozen = data.isFrozen;
@@ -364,12 +441,12 @@ export class Game extends Scene {
         delete this.playerMap[id];
     }
 
-    createCharacter(playerIndex: number, x: number, y: number) {
+    createCharacter(id: string, playerIndex: number, x: number, y: number) {
         let texture = 'princess';
         switch (playerIndex) {
             case 0: texture = 'princess'; break;
             case 1: texture = 'knight'; break;
-            case 2: texture = 'executioner'; break;
+            case 2: texture = 'executioner'; this.taggerId = id; break;
             case 3: texture = 'townfolk'; break;
         }
         const sprite = this.physics.add.sprite(x, y, texture);

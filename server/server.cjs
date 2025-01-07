@@ -20,7 +20,8 @@ app.get('/', (req, res) => {
 let players = {}; // { socketId: {x, y, roomDetails, nickname}, .. }  socketId를 key로, x, y, roomDetails, nickname을 value로
 // 이때, roomDetails = [roomName, playerIndex, frozen] 배열
 let rooms = {}; // {roomName: { map, password, player}}
-
+// 방별 타이머 관리를 위한 객체
+let roomTimers = {};
 
 //플레이어 초기화 함수
 function initializePlayer(socket, nickname) {
@@ -74,6 +75,37 @@ setInterval(() => {
   }
 }, 1);
 
+// 타이머 시작 함수
+function startTimer(data) {
+  // const roomName = players[socket.id].roomDetails[0]; 
+  const { roomName, duration } = data;
+  const countdown = duration / 1000;
+  const room = rooms[roomName];
+  roomTimers[roomName] = countdown;
+
+  // 이미 타이머가 실행 중인지 확인
+  if (roomTimers[roomName]?.intervalId) {
+    console.log(`타이머가 이미 실행 중인 방: ${roomName}`);
+    return; // 타이머가 이미 실행 중이라면 중복 시작하지 않음
+  }
+
+  console.log(`Timer started for room ${roomName} with ${countdown} seconds.`);
+  console.log(room.players);
+
+  const intervalId = setInterval(() => {
+    if (roomTimers[roomName] > 0) {
+      roomTimers[roomName]--;
+      console.log(`Timer ticking for room ${roomName}: ${roomTimers[roomName]} seconds left.`);
+      // 타이머 업데이트를 방에 브로드캐스트
+      io.to(roomName).emit('timerUpdate', { countdown: roomTimers[roomName] });
+    } else {
+      clearInterval(intervalId);
+      io.to(roomName).emit('timerEnd');
+      console.log(`Timer ended for room ${roomName}.`);
+    }
+  }, 1000);
+}
+
 
 
 io.on('connection', (socket) => {
@@ -120,16 +152,26 @@ io.on('connection', (socket) => {
   // *** 'frozen' 이벤트 처리 ***
   socket.on('frozen', (data) => {
     const isFrozen = data;
-    const roomName = players[socket.id].roomDetails[0]; 
-    const room = rooms[roomName];
-    console.log("frozen 들어옴: ", isFrozen);
-    console.log(room.players);
-    if (isFrozen) {
-      io.to(roomName).emit('frozen', {id: socket.id, isFrozen: true});
-    } else {
-      io.to(roomName).emit('frozen', {id: socket.id, isFrozen: false});
+    if (players[socket.id] && players[socket.id].roomDetails) {
+      const roomName = players[socket.id].roomDetails[0];
+      const room = rooms[roomName];
+      console.log("frozen 들어옴: ", isFrozen);
+      console.log(room.players);
+      if (isFrozen) {
+        io.to(roomName).emit('frozen', {id: socket.id, isFrozen: true});
+      } else {
+        io.to(roomName).emit('frozen', {id: socket.id, isFrozen: false});
+      }
     }
   })
+
+  socket.on('startGameTimer', (data) => {
+    const duration  = data;
+    const roomName = players[socket.id].roomDetails[0]; 
+    startTimer({roomName: roomName, duration: duration});
+    io.to(roomName).emit('timerStart');
+  });
+  
   
   // *** 'players_overlap' 이벤트 처리 ***
   socket.on('players_overlap', (data) => {
@@ -146,12 +188,13 @@ io.on('connection', (socket) => {
     const aPlayerIndex = players[aId].roomDetails[1];
     const bPlayerIndex = players[bId].roomDetails[1];
 
-    console.log("aPlayerIndex: ",aPlayerIndex);
-    console.log("bPlayerIndex: ", bPlayerIndex);
+    // console.log("aPlayerIndex: ",aPlayerIndex);
+    // console.log("bPlayerIndex: ", bPlayerIndex);
 
     // 1. 둘 중 한 명이라도 술래인지 판단
     if ( (aPlayerIndex == 2) || (bPlayerIndex == 2) ) {
       isTragger = true;
+      // console.log("술래와 겹침");
     }
 
     // 2. 둘 중 한 명이라도 frozen 상태인지 판단
@@ -369,7 +412,7 @@ io.on('connection', (socket) => {
     console.log('User disconnected:', socket.id);
 
     // 방에서 플레이어 제거
-    const roomName = players[socket.id]?.roomId;
+    const roomName = players[socket.id]?.roomDetails?players[socket.id].roomDetails[0]: null;
     if (roomName) {
       const room = rooms[roomName];
       if (room) {
