@@ -18,7 +18,7 @@ app.get('/', (req, res) => {
 
 // 플레이어와 방 정보를 저장 -> 이때 플레이어에 roomId를 부여해서 같은 방에 참여한 애들을 구분할 수 있게함.
 let players = {}; // { socketId: {x, y, roomDetails, nickname}, .. }  socketId를 key로, x, y, roomDetails, nickname을 value로
-// 이때, roomDetails = [roomName, playerIndex] 배열
+// 이때, roomDetails = [roomName, playerIndex, frozen] 배열
 let rooms = {}; // {roomName: { map, password, player}}
 
 
@@ -116,19 +116,50 @@ io.on('connection', (socket) => {
     //   "nickname": "Alice",
     // } 
   });
-
+  
+  // *** 'frozen' 이벤트 처리 ***
   socket.on('frozen', (data) => {
     const isFrozen = data;
     const roomName = players[socket.id].roomDetails[0]; 
     const room = rooms[roomName];
     console.log("frozen 들어옴: ", isFrozen);
+    console.log(room.players);
     if (isFrozen) {
       io.to(roomName).emit('frozen', {id: socket.id, isFrozen: true});
     } else {
       io.to(roomName).emit('frozen', {id: socket.id, isFrozen: false});
     }
   })
+  
+  // *** 'players_overlap' 이벤트 처리 ***
+  socket.on('players_overlap', (data) => {
+    const { aId, bId } = data;
+    let isTragger = false;
+    console.log(`서버가 받음: 플레이어 ${aId}와 ${bId}가 겹침`);
 
+     // 플레이어 존재 여부 확인
+    if (!players[aId] || !players[bId]) {
+      console.log(`Error: One of the players is not found in the room. Player IDs: ${aId}, ${bId}`);
+      return; // 플레이어가 존재하지 않으면 함수 실행 중단
+    }
+
+    const aPlayerIndex = players[aId].roomDetails[1];
+    const bPlayerIndex = players[bId].roomDetails[1];
+
+    console.log("aPlayerIndex: ",aPlayerIndex);
+    console.log("bPlayerIndex: ", bPlayerIndex);
+
+    // 1. 둘 중 한 명이라도 술래인지 판단
+    if ( (aPlayerIndex == 2) || (bPlayerIndex == 2) ) {
+      isTragger = true;
+    }
+
+    // 2. 둘 중 한 명이라도 frozen 상태인지 판단
+
+    // 원하는 로직 수행
+    //닿은 사람이 얼음이라면, 땡 상태로 바꿈.
+    
+  })
 
   // *** 'createroom' 이벤트 처리 ***
   socket.on('createroom', (data) => {
@@ -158,6 +189,7 @@ io.on('connection', (socket) => {
     };
 
     socket.join(roomName);
+    console.log(`socket(${socket.id}) join the room(${roomName})`);
     //socket을 roomName이라는 이름의 방에 조인 (자동생성)
     // join 후, io.to(roomName).emit('message') 같은 방식으로 서버가 특정 방 클라이언트에만 메세지를 보낼 수 있음
 
@@ -172,7 +204,7 @@ io.on('connection', (socket) => {
     console.log(`[socket.on(createroom)] 방 생성됨 = ${roomName}, leader = ${socket.id}`);
   });
 
-  // 'getrooms' 이벤트 처리 (방 목록 요청)
+  // *** 'getrooms' 이벤트 처리 ***
   socket.on('getrooms', () => {
     socket.emit('roomlist', getRoomList());
   });
@@ -199,7 +231,9 @@ io.on('connection', (socket) => {
     console.log("myId",socket.id);
     room.players.push(socket.id);
     players[socket.id].roomDetails = [roomName, playerIndex];
+    
     socket.join(roomName);
+    console.log(`socket(${socket.id}) join the room(${roomName})`)
 
     // joinroom_response 성공
     socket.emit('joinroom_response', {

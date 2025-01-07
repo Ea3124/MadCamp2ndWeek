@@ -23,6 +23,7 @@ export class Game extends Scene {
 
     // 온라인으로 접속한 플레이어들의 스프라이트 목록
     playerMap: { [key: string]: { sprite: Phaser.Physics.Arcade.Sprite, character: string } } = {};
+    private playersGroup!: Phaser.Physics.Arcade.Group;
     playersInRoom: any;
     playerIndex: number;
     myCharacter: string; // 내 sprite에 인물 저장.
@@ -30,6 +31,8 @@ export class Game extends Scene {
     map: string;
 
     isFrozen: boolean = false; // 얼음 상태 관리
+    overlapCooldown: boolean;
+    // isTagger: boolean = false; // 술래인지 유무 나타냄.
 
 
     constructor() {
@@ -42,9 +45,6 @@ export class Game extends Scene {
         this.playersInRoom = data.playersInRoom;
         this.playerIndex = (data.playersInRoom).findIndex( element => element.id === this.currentPlayerId);
         console.log(`index: ${this.playerIndex}, id: ${this.currentPlayerId}`);
-    }
-
-    preload() {
     }
 
     create() {
@@ -70,6 +70,50 @@ export class Game extends Scene {
         this.myCharacter = character;
         this.player = player;
         console.log('Player body:', this.player.body);
+    
+        this.camera = this.cameras.main;
+        this.camera.setBackgroundColor(0x000000);
+
+        // 선택된 맵을 배경으로 설정
+        // this.background = this.add.image(512, 384, this.map).setAlpha(0.5);
+
+        this.playersInRoom.forEach((p: { id: string; playerIndex: number }, i: number) => {
+            // 자기 자신이면 pass
+            if (p.id === this.currentPlayerId) {
+                this.playerMap[this.currentPlayerId] = {sprite: this.player, character: this.myCharacter};
+                return; 
+            }
+            
+            const { texture: someTexture, sprite: otherSprite } = this.createCharacter(p.playerIndex, 500, 500);
+            
+            // playerMap에 등록해서 추후 위치 갱신 등에서 참조
+            this.playerMap[p.id] = {sprite: otherSprite, character: someTexture};
+        });
+
+        // 위에서 playerMap[id]에 모든 유저가 저장된 뒤에,
+        this.playersGroup = this.physics.add.group({
+            // optional config
+            runChildUpdate: true
+        });
+        Object.keys(this.playerMap).forEach((playerId) => {
+            const { sprite } = this.playerMap[playerId];
+            this.playersGroup.add(sprite);
+        });
+        this.physics.add.overlap(
+            this.playersGroup,
+            this.playersGroup,
+            this.handlePlayerOverlap, // 겹칠 때 호출할 콜백
+            undefined,
+            // this.processPlayerOverlap, // optional, 어떤 Overla만 처리할지 필터
+            this
+        );
+
+        
+        this.handleSocketEvents();
+
+        // 충돌 설정
+        this.player.setCollideWorldBounds(true);
+        this.player.setDepth(1);
 
         // '얼음' 상태 토글 이벤트
         this.input.keyboard?.on('keydown-F', () => {
@@ -98,33 +142,8 @@ export class Game extends Scene {
                 client.emit('frozen', false);
             }
         });
-            
-        this.camera = this.cameras.main;
-        this.camera.setBackgroundColor(0x000000);
-
-        // 선택된 맵을 배경으로 설정
-        // this.background = this.add.image(512, 384, this.map).setAlpha(0.5);
-
-        this.playersInRoom.forEach((p: { id: string; playerIndex: number }, i: number) => {
-            // 자기 자신이면 pass
-            if (p.id === this.currentPlayerId) {
-                this.playerMap[this.currentPlayerId] = {sprite: this.player, character: this.myCharacter};
-                return; 
-            }
-            
-            const { texture: someTexture, sprite: otherSprite } = this.createCharacter(p.playerIndex, 500, 500);
-            
-            // playerMap에 등록해서 추후 위치 갱신 등에서 참조
-            this.playerMap[p.id] = {sprite: otherSprite, character: someTexture};
-        });
         
-        this.handleSocketEvents();
 
-        // 충돌 설정
-        this.player.setCollideWorldBounds(true);
-        this.player.setDepth(1);
-        console.log('Player visibility:', this.player.visible, 'Alpha:', this.player.alpha);
-        
         this.cursors = this.input?.keyboard?.createCursorKeys()!;
 
         console.log('Game scene created successfully.');
@@ -179,6 +198,40 @@ export class Game extends Scene {
         }  
     }
     
+    handlePlayerOverlap(obj1: Phaser.Types.Physics.Arcade.GameObjectWithBody, obj2: Phaser.Types.Physics.Arcade.GameObjectWithBody){
+        // 두 스프라이트가 누군지 식별
+        const spriteA = obj1 as Phaser.Physics.Arcade.Sprite;
+        const spriteB = obj2 as Phaser.Physics.Arcade.Sprite;
+
+        // 이미 처리중이거나 방금 처리했다면 return;
+        if (this.overlapCooldown) return;
+
+        // playerMap에서 해당 sprite를 가진 playerId를 찾음.
+        const idA = this.findPlayerIdBySprite(spriteA);
+        const idB = this.findPlayerIdBySprite(spriteB);
+        if (!idA || !idB) return;
+        if (idA === idB) return;
+
+        console.log(`Overlap between player ${idA} and player ${idB}`);
+
+        //서버에 알림
+        client.emit('players_overlap', { aId: idA, bId: idB });
+        
+        this.overlapCooldown = true;
+        setTimeout(() => {
+            this.overlapCooldown = false;
+        }, 1000);
+        
+    }
+
+    findPlayerIdBySprite(sprite: Phaser.Physics.Arcade.Sprite) : string | null {
+        for (const [pid, data] of Object.entries(this.playerMap)) {
+            if (data.sprite === sprite) {
+                return pid;
+            }
+        }
+        return null;
+    }
 
     /**
      * 소켓 이벤트들을 모아서 처리
