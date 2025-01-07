@@ -18,6 +18,7 @@ export class WaitingRoom extends Scene {
     startButton: GameObjects.Image | null;
     isLeader: boolean;
     playersListText: GameObjects.Text;
+    startButtonText: GameObjects.Text;
 
     constructor() {
         super('WaitingRoom');
@@ -41,34 +42,75 @@ export class WaitingRoom extends Scene {
         }
     }
 
+    preload() {
+        this.load.image('joinButton', 'joinButton.png');
+    }
+
     create() {
+
+        WebFont.load({
+            google: {
+                families: [ 'Rubik Pixels', 'Jua' ]
+            },
+            active: function ()
+            {
+                add.text(0, 0, '.', { fontFamily: 'Rubik Pixels', fontSize: 1, color: '#ffffff' });
+                add.text(0, 0, '.', { fontFamily: 'Jua', fontSize: 1, color: '#5656ee' });
+
+
+                input.once('pointerdown', () =>
+                {
+                    t.setFontSize(64);
+                });
+            }
+        });
+
         // 배경
         this.background = this.add.image(512, 384, 'background');
 
         // 제목
-        this.title = this.add.text(512, 100, `방: ${this.roomName}`, {
-            fontFamily: 'Arial Black',
-            fontSize: 32,
+        this.title = this.add.text(512, 100, `Room: ${this.roomName}`, {
+            fontFamily: 'Rubik Pixels',
+            fontSize: 64,
             color: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 6,
+            stroke: '#bfefeb',
+            strokeThickness: 3,
             align: 'center'
         }).setOrigin(0.5);
 
         // 플레이어 목록
-        this.playersListText = this.add.text(512, 200, '플레이어 목록:\n', {
-            fontFamily: 'Arial',
-            fontSize: 24,
+        this.playersListText = this.add.text(512, 320, '플레이어 목록:\n\n', {
+            fontFamily: 'Jua',
+            fontSize: 32,
             color: '#ffffff',
             align: 'center'
         }).setOrigin(0.5);
 
         // "게임 시작" 버튼
-        this.startButton = this.add.image(512, 600, 'startButton')
+        this.startButtonText = this.add.text(450, 600, 'Start Game!', {
+            fontFamily: 'Arial Black',
+            fontSize: 24,
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 4,
+            align: 'left'
+        }).setOrigin(0, 0.5).setDepth(100).setVisible(false);
+
+        this.startButton = this.add.image(400, 600, 'joinButton')
             .setInteractive()
             .setVisible(false); // 기본적으로 숨김
         this.startButton.on('pointerdown', () => {
             this.startGame();
+            this.startButton?.setTint(0xaaaaaa);  // 버튼에 음영 추가
+        });
+        this.startButton.on('pointerover', () => {
+            this.startButton?.setScale(1.1);
+            startButtonText.setScale(1.1);  // 텍스트 크기도 10% 증가
+        });
+        this.startButton.on('pointerout', () => {
+            this.startButton?.setScale(1.0);
+            startButtonText.setScale(1.0);
+            this.startButton?.clearTint();  // 음영 제거
         });
 
         // ★ 만약 처음부터 내가 방장이라면 버튼 보이기
@@ -149,6 +191,7 @@ export class WaitingRoom extends Scene {
     showStartButton() {
         if (this.startButton) {
             this.startButton.setVisible(true);
+            this.startButtonText.setVisible(true);
         }
     }
 

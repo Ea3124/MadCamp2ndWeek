@@ -64,3 +64,5 @@
 
 <!-- Phaser 게임이 그려질 DOM 컨테이너 -->
 <div id="game-container" style="width:1024px; height:768px; margin:0 auto;"></div>
+
+

@@ -18,6 +18,9 @@ export class Intro extends Scene {
     nicknameText: GameObjects.Text;
     isNicknameActive: boolean = false;
 
+    // 최대 기울기 각도 (라디안 단위)
+    private readonly MAX_TILT_ANGLE = Phaser.Math.DegToRad(10); // 10도
+
     constructor() {
         super('Intro');
     }
@@ -93,7 +96,7 @@ export class Intro extends Scene {
         this.nicknameText = this.add.text(512, 300, 'Write your Nickname', {
             fontFamily: 'Arial',
             fontSize: 24,
-            color: '#ffFFFF',
+            color: '#ffffff',
             backgroundColor: 'rgba(255, 255, 255, 0.1)', // 배경색 반투명 설정
             padding: { left: 20, right: 20, top: 15, bottom: 15 }
         }).setOrigin(0.5,0.5).setInteractive();
@@ -131,6 +134,42 @@ export class Intro extends Scene {
         });
 
         EventBus.emit('current-scene-ready', this);
+
+        // 마우스 움직임에 따른 제목 기울기 초기화
+        this.title.setRotation(0);
+    }
+
+    // 업데이트 루프에서 제목 기울기 처리
+    update() {
+        const pointer = this.input.activePointer;
+
+        // 제목의 중앙 위치
+        const titleX = this.title.x;
+        const titleY = this.title.y;
+
+        // 마우스 위치과 제목 중심의 차이
+        const deltaX = pointer.x - titleX;
+        const deltaY = pointer.y - titleY;
+
+        // 제목과 마우스 간의 거리
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+        // 거리 기반으로 기울기 계산 (제한된 최대 기울기 각도 적용)
+        const maxDistance = 300; // 기울기 최대치를 적용할 거리
+        const tiltFactor = Math.min(distance / maxDistance, 1); // 0 ~ 1
+
+        // 각도 계산
+        const angle = Math.atan2(deltaY, deltaX) - Math.PI / 2; // 제목을 기준으로 회전
+
+        // 기울기 각도 (X와 Y 방향으로 분리)
+        const tiltX = Phaser.Math.Clamp(deltaY / maxDistance, -1, 1) * this.MAX_TILT_ANGLE;
+        const tiltY = Phaser.Math.Clamp(deltaX / maxDistance, -1, 1) * this.MAX_TILT_ANGLE;
+
+        // 부드러운 기울기 적용 (lerp 사용)
+        const currentRotation = this.title.rotation;
+        const targetRotation = (tiltX + tiltY) / 2; // 간단히 평균을 사용
+        const lerpFactor = 0.1; // 0 < lerpFactor <= 1
+        this.title.rotation = Phaser.Math.Linear(currentRotation, targetRotation, lerpFactor);
     }
 
     // 닉네임 입력 활성화/비활성화
