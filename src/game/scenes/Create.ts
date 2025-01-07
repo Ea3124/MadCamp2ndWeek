@@ -55,17 +55,42 @@ export class Create extends Scene {
         }
     };
 
+    preload() {
+        this.load.script('webfont', 'https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js');
+    }
+
     create() {
         // 배경
         this.background = this.add.image(512, 384, 'background');
 
+        const input = this.input;
+        const add = this.add;
+
+        WebFont.load({
+            google: {
+                families: [ 'Rubik Pixels', 'Jua' ]
+            },
+            active: function ()
+            {
+                add.text(0, 0, '.', { fontFamily: 'Rubik Pixels', fontSize: 1, color: '#ffffff' });
+                add.text(0, 0, '.', { fontFamily: 'Jua', fontSize: 1, color: '#5656ee' });
+
+
+                input.once('pointerdown', () =>
+                {
+                    t.setFontSize(64);
+                });
+            }
+        });
+
         // 제목
-        this.title = this.add.text(512, 100, '방 생성', {
-            fontFamily: 'Arial Black',
-            fontSize: 48,
+        this.title = this.add.text(512, 100, 'Create your Room!', {
+            // fontFamily: 'Arial',
+            fontFamily: 'Rubik Pixels',
+            fontSize: 72,
             color: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 8,
+            stroke: '#bfefeb',
+            strokeThickness: 3,
             align: 'center'
         }).setOrigin(0.5);
 
@@ -73,14 +98,16 @@ export class Create extends Scene {
         client.emit('newplayer', { nickname: this.nickname });
 
         // 방 이름
-        this.roomNameText = this.add.text(200, 200, '방 이름:', {
-            fontFamily: 'Arial',
-            fontSize: 24,
-            color: '#ffffff'
+        this.roomNameText = this.add.text(340, 250, '방 이름:', {
+            fontFamily: 'Jua',
+            fontSize: 28,
+            color: '#ffffff',
+            // stroke: '#000000',
+            // strokeThickness: 4,
         }).setOrigin(0, 0.5);
 
-        this.roomNameInput = this.add.text(300, 200, '방 이름 입력', {
-            fontFamily: 'Arial',
+        this.roomNameInput = this.add.text(500, 250, '방 이름', {
+            fontFamily: 'Jua',
             fontSize: 24,
             color: '#ffFFFF',
             backgroundColor: 'rgba(255, 255, 255, 0.1)', // 배경색 반투명 설정
@@ -92,17 +119,17 @@ export class Create extends Scene {
         });
 
         // 맵 선택
-        this.mapText = this.add.text(200, 300, '맵 선택:', {
-            fontFamily: 'Arial',
-            fontSize: 24,
+        this.mapText = this.add.text(340, 350, '맵 선택:', {
+            fontFamily: 'Jua',
+            fontSize: 28,
             color: '#ffffff'
         }).setOrigin(0, 0.5);
 
         // 맵 옵션 텍스트 생성
         this.mapOptions = this.maps.map((map, index) => {
-            const mapText = this.add.text(300, 300 + index * 40, map, {
-                fontFamily: 'Arial',
-                fontSize: 24,
+            const mapText = this.add.text(510, 350 + index * 40, map, {
+                fontFamily: 'Jua',
+                fontSize: 28,
                 color: index === this.selectedMapIndex ? '#ffcc00' : '#ffffff'
             }).setOrigin(0, 0.5).setInteractive();
 
@@ -117,14 +144,14 @@ export class Create extends Scene {
         this.updateMapOptions();
 
         // 비밀번호 (선택)
-        this.passwordText = this.add.text(200, 400, '비밀번호:', {
-            fontFamily: 'Arial',
-            fontSize: 24,
+        this.passwordText = this.add.text(328, 500, '비밀번호:', {
+            fontFamily: 'Jua',
+            fontSize: 28,
             color: '#ffffff'
         }).setOrigin(0, 0.5);
 
-        this.passwordInput = this.add.text(300, 400, '비밀번호 입력 (선택)', {
-            fontFamily: 'Arial',
+        this.passwordInput = this.add.text(500, 500, '비밀번호 입력 (선택)', {
+            fontFamily: 'Jua',
             fontSize: 24,
             color: '#ffFFFF',
             backgroundColor: 'rgba(255, 255, 255, 0.1)', // 배경색 반투명 설정
@@ -136,9 +163,28 @@ export class Create extends Scene {
         });
 
         // createButton
-        this.createButton = this.add.image(512, 500, 'createButton').setInteractive();
+        this.createButton = this.add.image(400, 600, 'createButton').setInteractive();
+
+        let startButtonText = this.add.text(450, 600, 'Create Room!', {
+            fontFamily: 'Arial Black',
+            fontSize: 24,
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 4,
+            align: 'left'
+        }).setOrigin(0, 0.5).setDepth(100);
         this.createButton.on('pointerdown', () => {
             this.createRoom();
+            this.createButton.setTint(0xaaaaaa);  // 버튼에 음영 추가
+        });
+        this.createButton.on('pointerover', () => {
+            this.createButton.setScale(1.1);
+            startButtonText.setScale(1.1);  // 텍스트 크기도 10% 증가
+        });
+        this.createButton.on('pointerout', () => {
+            this.createButton.setScale(1.0);
+            startButtonText.setScale(1.0);
+            this.createButton.clearTint();  // 음영 제거
         });
 
         // 방 생성 응답

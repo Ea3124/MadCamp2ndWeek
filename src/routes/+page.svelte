@@ -13,10 +13,12 @@
 
 <div id="app">
     <PhaserGame bind:phaserRef={phaserRef} currentActiveScene={currentScene} />
+    <div style="font-family:font1; position:absolute; left:-1000px; visibility:hidden;">.</div>
 
 </div>
 
 <style>
+
     #app {
         width: 100%;
         height: 100vh;
@@ -26,6 +28,4 @@
         justify-content: center; /* 가로 방향 중앙 정렬 */
         align-items: center; /* 세로 방향 중앙 정렬 */
     }    
-
-    /* 추가적인 스타일 */
 </style>

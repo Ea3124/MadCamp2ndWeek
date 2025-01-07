@@ -30,12 +30,12 @@ export class Join extends Scene {
         this.background = this.add.image(512, 384, 'background');
 
         // 제목
-        this.title = this.add.text(512, 100, '방 참가', {
-            fontFamily: 'Arial Black',
-            fontSize: 48,
+        this.title = this.add.text(512, 100, 'Join a Room !', {
+            fontFamily: 'Rubik Pixels',
+            fontSize: 72,
             color: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 8,
+            stroke: '#bfefeb',
+            strokeThickness: 3,
             align: 'center'
         }).setOrigin(0.5);
 
@@ -98,18 +98,24 @@ export class Join extends Scene {
             // 방이 이미 시작된 경우 표시하지 않음
             if (room.status === 'started') return;
 
-            const roomButton = this.add.image(-200, yOffset, 'roomButton').setInteractive();
+            const roomButton = this.add.image(-200, yOffset, 'joinButton').setInteractive();
             roomButton.on('pointerdown', () => {
                 this.selectRoom(room.roomName, room.passwordProtected);
             });
 
-            const roomText = this.add.text(-200, yOffset, `${room.roomName} (${room.playerCount}/4명)${room.passwordProtected ? ' [비밀번호]' : ''}`, {
-                fontFamily: 'Arial',
+            const roomText = this.add.text(-150, yOffset, `Room: ${room.roomName}`, {
+                fontFamily: 'Jua',
                 fontSize: 24,
                 color: '#ffffff'
             }).setOrigin(0, 0.5);
 
-            this.roomListContainer.add([roomButton, roomText]);
+            const roomText2 = this.add.text(100, yOffset, `  (${room.playerCount}/4명)${room.passwordProtected ? ' [비밀번호]' : ''}`, {
+                fontFamily: 'Jua',
+                fontSize: 24,
+                color: '#ffffff'
+            }).setOrigin(0, 0.5);
+
+            this.roomListContainer.add([roomButton, roomText, roomText2]);
         });
     }
 
@@ -121,9 +127,7 @@ export class Join extends Scene {
             if (this.passwordInput) {
                 this.passwordInput.style.display = 'block';
             }
-        } else {
-            this.attemptJoin();
-        }
+        } 
     }
 
     createPasswordInput() {

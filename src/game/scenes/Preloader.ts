@@ -93,6 +93,8 @@ export class Preloader extends Scene
         this.load.image('tile5', 'images/tf_winter_tileD.png');
 
         this.load.tilemapTiledJSON('map', 'images/real_map2.json');
+
+        this.load.script('webfont', 'https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js');
         
 
         console.log('Load tilemap in preloader well');
@@ -102,7 +104,26 @@ export class Preloader extends Scene
     {
         //  When all the assets have loaded, it's often worth creating global objects here that the rest of the game can use.
         //  For example, you can define global animations here, so we can use them in other scenes.
-        
+        const input = this.input;
+        const add = this.add;
+
+        WebFont.load({
+            google: {
+                families: [ 'Rubik Pixels', 'Jua' ]
+            },
+            active: function ()
+            {
+                add.text(0, 0, '.', { fontFamily: 'Rubik Pixels', fontSize: 1, color: '#ffffff' });
+                add.text(0, 0, '.', { fontFamily: 'Jua', fontSize: 1, color: '#5656ee' });
+
+
+                input.once('pointerdown', () =>
+                {
+                    t.setFontSize(64);
+                });
+            }
+        });
+
         console.log('All assets loaded, transitioning to MainMenu.');
         //  Move to the MainMenu. You could also swap this for a Scene Transition, such as a camera fade.
         // this.scene.start('MainMenu');
