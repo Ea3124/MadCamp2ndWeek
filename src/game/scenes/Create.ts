@@ -220,21 +220,21 @@ export class Create extends Scene {
                 backgroundColor: 'rgba(0, 0, 0, 0.1)', // 배경색 반투명 설정
              });
             this.passwordInput.setStyle({ color: '#ffffff',
-                backgroundColor: 'rgba(0, 0, 0, 0.1)', // 배경색 반투명 설정
+                backgroundColor: 'rgba(255, 255, 255, 0.1)', // 배경색 반투명 설정
              });
         } else if (this.activeInput === 'password') {
             this.roomNameInput.setStyle({ color: '#ffffff',
-                backgroundColor: 'rgba(0, 0, 0, 0.1)', // 배경색 반투명 설정
+                backgroundColor: 'rgba(255, 255, 255, 0.1)', // 배경색 반투명 설정
              });
             this.passwordInput.setStyle({ color: '#ffffff',
                 backgroundColor: 'rgba(0, 0, 0, 0.1)', // 배경색 반투명 설정
              });
         } else {
             this.roomNameInput.setStyle({ color: '#ffffff',
-                backgroundColor: 'rgba(0, 0, 0, 0.1)', // 배경색 반투명 설정
+                backgroundColor: 'rgba(255, 255, 255, 0.1)', // 배경색 반투명 설정
              });
             this.passwordInput.setStyle({ color: '#ffffff',
-                backgroundColor: 'rgba(0, 0, 0, 0.1)', // 배경색 반투명 설정
+                backgroundColor: 'rgba(255, 255, 255, 0.1)', // 배경색 반투명 설정
              });
         }
     }
