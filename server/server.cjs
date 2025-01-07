@@ -18,7 +18,7 @@ app.get('/', (req, res) => {
 
 // 플레이어와 방 정보를 저장 -> 이때 플레이어에 roomId를 부여해서 같은 방에 참여한 애들을 구분할 수 있게함.
 let players = {}; // { socketId: {x, y, roomDetails, nickname}, .. }  socketId를 key로, x, y, roomDetails, nickname을 value로
-// 이때, roomDetails = [roomName, playerIndex, frozen] 배열
+// 이때, roomDetails = [roomName, playerIndex, frozen, isDead] 배열
 let rooms = {}; // {roomName: { map, password, player}}
 // 방별 타이머 관리를 위한 객체
 let roomTimers = {};
@@ -73,7 +73,7 @@ setInterval(() => {
       y: p.y
     });
   }
-}, 1);
+}, 10);
 
 // 타이머 시작 함수
 function startTimer(data) {
@@ -152,11 +152,18 @@ io.on('connection', (socket) => {
   // *** 'frozen' 이벤트 처리 ***
   socket.on('frozen', (data) => {
     const isFrozen = data;
+    
     if (players[socket.id] && players[socket.id].roomDetails) {
+      // roomDetails 있는지 확인
       const roomName = players[socket.id].roomDetails[0];
       const room = rooms[roomName];
+      if (players[socket.id].roomDetails[3]) return;
+
+      players[socket.id].roomDetails[2] = isFrozen; // **** 추가함 ****
+
       console.log("frozen 들어옴: ", isFrozen);
       console.log(room.players);
+
       if (isFrozen) {
         io.to(roomName).emit('frozen', {id: socket.id, isFrozen: true});
       } else {
@@ -165,6 +172,7 @@ io.on('connection', (socket) => {
     }
   })
 
+  // *** 'startGameTimer' 이벤트 처리 ***
   socket.on('startGameTimer', (data) => {
     const duration  = data;
     const roomName = players[socket.id].roomDetails[0]; 
@@ -176,29 +184,67 @@ io.on('connection', (socket) => {
   // *** 'players_overlap' 이벤트 처리 ***
   socket.on('players_overlap', (data) => {
     const { aId, bId } = data;
-    let isTragger = false;
-    console.log(`서버가 받음: 플레이어 ${aId}와 ${bId}가 겹침`);
-
-     // 플레이어 존재 여부 확인
+    // console.log(`서버가 받음: 플레이어 ${aId}와 ${bId}가 겹침`);
+    
+    // 플레이어 존재 여부 확인
     if (!players[aId] || !players[bId]) {
       console.log(`Error: One of the players is not found in the room. Player IDs: ${aId}, ${bId}`);
       return; // 플레이어가 존재하지 않으면 함수 실행 중단
     }
+    
+    const aPlayer = players[aId];
+    const bPlayer = players[bId];
+    const roomName = aPlayer.roomDetails[0];
+    let playerTaggerId = null; 
 
-    const aPlayerIndex = players[aId].roomDetails[1];
-    const bPlayerIndex = players[bId].roomDetails[1];
+    if (aPlayer.roomDetails[3] || bPlayer.roomDetails[3]) {
+      // 둘 중 하나라도 죽었다면,
+      return;
+    }
 
     // console.log("aPlayerIndex: ",aPlayerIndex);
     // console.log("bPlayerIndex: ", bPlayerIndex);
-
-    // 1. 둘 중 한 명이라도 술래인지 판단
-    if ( (aPlayerIndex == 2) || (bPlayerIndex == 2) ) {
-      isTragger = true;
-      // console.log("술래와 겹침");
+    if ( aPlayer.roomDetails[1] == 2) {
+      playerTaggerId = aId;
+    }
+    if ( bPlayer.roomDetails[1] == 2) {
+      playerTaggerId = bId;
     }
 
-    // 2. 둘 중 한 명이라도 frozen 상태인지 판단
+    // *** 만약에 둘 다 술래이면 문제가 발생할 수 있음 *** 
 
+    if ( playerTaggerId === null ) {
+      // 둘 다 술래가 아님
+      
+      // 둘 중 하나라도 isFrozen 이 true
+      if ( aPlayer.roomDetails[2] ) {
+        if ( !bPlayer.roomDetails[2] ) {
+          // aPlayer가 frozen, bPlayer가 not frozen
+          console.log(`서버가 받음: 플레이어 a: ${aId}와 b: ${bId}가 겹쳐서 a가 땡됨`);
+          io.to(roomName).emit('frozen', {id: aId, isFrozen: false}); 
+        }
+      } 
+      if ( bPlayer.roomDetails[2] ) {
+        if ( !aPlayer.roomDetails[2] ) {
+          // bPlayer가 frozen, aPlayer가 not frozen
+          console.log(`서버가 받음: 플레이어 a: ${aId}와 b: ${bId}가 겹쳐서 b가 땡됨`); 
+          io.to(roomName).emit('frozen', {id: bId, isFrozen: false});
+        }
+      }
+    } else { // 둘 중 하나가 술래임.
+      // console.log("술래와 겹침");
+      if ( !aPlayer.roomDetails[2] && !bPlayer.roomDetails[2] ) {
+        // aPlayer와 bPlayer 모두 isFrozen이 false
+        if (playerTaggerId == aId) {
+          io.to(roomName).emit('playerOut', bId );
+          bPlayer.roomDetails[3] = true;
+          console.log(`서버가 받음: 플레이어 a: ${aId}와 b: ${bId}가 겹쳐서 ${bId}가 탈락됨`); 
+        } else if (playerTaggerId == bId) {
+          io.to(roomName).emit('playerOut', aId );
+          console.log(`서버가 받음: 플레이어 a: ${aId}와 b: ${bId}가 겹쳐서 ${aId}가 탈락됨`); 
+        } 
+      }
+    }
     // 원하는 로직 수행
     //닿은 사람이 얼음이라면, 땡 상태로 바꿈.
     
@@ -220,7 +266,7 @@ io.on('connection', (socket) => {
     // 클라이언트측의 newPlayer가 도착하기 이전이면, 안되었을수 있음. 근데 있을까 ?
     initializePlayer(socket, players[socket.id]?.nickname);
     // 플레이어의 roomDetail 추가 
-    players[socket.id].roomDetails = [roomName, 0];
+    players[socket.id].roomDetails = [roomName, 0, false, false];
 
     // 새로운 방 생성
     rooms[roomName] = {
@@ -273,7 +319,7 @@ io.on('connection', (socket) => {
     console.log("playerIndex: ",playerIndex);
     console.log("myId",socket.id);
     room.players.push(socket.id);
-    players[socket.id].roomDetails = [roomName, playerIndex];
+    players[socket.id].roomDetails = [roomName, playerIndex, false, false];
     
     socket.join(roomName);
     console.log(`socket(${socket.id}) join the room(${roomName})`)
