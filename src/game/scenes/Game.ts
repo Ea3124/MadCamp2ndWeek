@@ -250,21 +250,24 @@ export class Game extends Scene {
             return;
         }
 
+        // 술래와 일반 플레이어의 속도 차이를 설정
+        const speed = this.playerIndex === 2 ? 200 : 170; // 술래일 경우 속도를 200으로, 아니면 170으로 설정
+
         if (this.cursors.left.isDown) {
-            this.player.setVelocityX(-170);
+            this.player.setVelocityX(-speed);
             client.emit('move', { dir: 'left' });
             moving = true;
         } else if (this.cursors.right.isDown) {
-            this.player.setVelocityX(170);
+            this.player.setVelocityX(speed);
             client.emit('move', { dir: 'right' });
             moving = true;
         } else if (this.cursors.up.isDown) {
-            this.player.setVelocityY(-170);
+            this.player.setVelocityY(-speed);
             client.emit('move', { dir: 'up' });
             moving = true;
             // this.player.setTexture('snowman_with_red');
         } else if (this.cursors.down.isDown) {
-            this.player.setVelocityY(170);
+            this.player.setVelocityY(speed);
             client.emit('move', { dir: 'down' });
             moving = true;
         } else {
@@ -353,8 +356,8 @@ export class Game extends Scene {
             color: '#000000',
             fontStyle: 'bold'
         }).setOrigin(0.5);
-        this.taggerCountdownText.setScrollFactor(0);
-        this.taggerCountdownText.setDepth(200);
+        this.gameCountdownText.setScrollFactor(0);
+        this.gameCountdownText.setDepth(200);
     }
     
     handlePlayerOverlap(obj1: Phaser.Types.Physics.Arcade.GameObjectWithBody, obj2: Phaser.Types.Physics.Arcade.GameObjectWithBody){
