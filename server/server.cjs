@@ -10,6 +10,11 @@ const { Pool } = require('pg');
 const app = express();
 const port = 3000; // 예시
 
+const cors = require('cors');
+app.use(cors()); // 기본 모드로 모든 origin 허용
+
+app.use(express.json());  // 여기서 미들웨어 등록
+
 // 2) Pool 인스턴스 생성
 const pool = new Pool({
   host: process.env.POSTGRES_HOST,     // localhost
@@ -34,6 +39,29 @@ app.get('/api/users', async (req, res) => {
     // 쿼리 예시: users 테이블에서 모든 행 가져오기
     const result = await pool.query('SELECT * FROM users');
     res.json(result.rows);
+  } catch (error) {
+    console.error('쿼리 실행 에러:', error);
+    res.status(500).json({ error: 'DB 에러' });
+  }
+});
+
+app.post('/api/users', async (req, res) => {
+  try {
+    const { id, score } = req.body; 
+    // 각 값이 제대로 넘어오는지 확인해보세요.
+
+    // users 테이블: (id VARCHAR(50) PRIMARY KEY, nickname VARCHAR(100), score INT, created_at ...)
+    const query = `
+      INSERT INTO users (id, score) 
+      VALUES ($1, $2)
+      ON CONFLICT (id) DO NOTHING
+      -- ON CONFLICT (id) DO NOTHING:
+      -- 이미 같은 id가 있으면 그냥 무시 (중복 삽입 에러 방지)
+    `;
+    await pool.query(query, [id, score]);
+
+    // 성공 응답
+    return res.status(200).json({ success: true, message: 'User inserted or already exists' });
   } catch (error) {
     console.error('쿼리 실행 에러:', error);
     res.status(500).json({ error: 'DB 에러' });

@@ -110,6 +110,30 @@ export class Game extends Scene {
             this.playerMap[p.id] = {sprite: otherSprite, character: someTexture, isFrozen: false, isDead: false};
         });
 
+        fetch('http://172.10.7.17:3000/api/users', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                id: this.currentPlayerId,
+                // nickname: this.nickname,
+                score: 0
+            })
+        })
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(`서버 에러: ${res.status}`);
+            }
+            return res.json();
+        })
+        .then(data => {
+            console.log('DB 저장 결과:', data);
+        })
+        .catch(error => {
+            console.error('User Insert error:', error);
+        });
+
         // 만약 내가 술래라면,
         if (this.playerIndex === 2) {
             this.taggerId = this.currentPlayerId; // 이미 createCharacter에서 넣어줬지만 한 번 더 넣어줌.
