@@ -242,9 +242,12 @@ io.on('connection', (socket) => {
   // *** 'startGameTimer' 이벤트 처리 ***
   socket.on('startGameTimer', (data) => {
     const duration  = data;
+    // if (this.) {
+
+    // }
     const roomName = players[socket.id].roomDetails[0]; 
     startTimer({roomName: roomName, duration: duration});
-    io.to(roomName).emit('timerStart');
+    io.to(roomName).emit('timerStart', duration);
   });
   
   
@@ -322,8 +325,10 @@ io.on('connection', (socket) => {
           }
         }
         if (rooms[roomName].aliveNum == 1) {
-          io.to(roomName).emit('gameover');
-          console.log('생존자 1명 (술래)이므로 게임을 종료합니다.');
+          setTimeout(() => {
+            io.to(roomName).emit('gameover');
+            console.log('생존자 1명 (술래)이므로 게임을 종료합니다.');
+          }, 5000); // 5000ms = 5초
         } else if (rooms[roomName].aliveNum == 0) {
           console.log("왜 생존자가 0 명 ??");
         }

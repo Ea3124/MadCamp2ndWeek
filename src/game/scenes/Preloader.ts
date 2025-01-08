@@ -41,23 +41,10 @@ export class Preloader extends Scene
         this.load.image('startButton', 'startButton.png');
         this.load.image('createButton', 'createButton.png');
         
-        this.load.spritesheet('snowman_with_red', 'images/players/snowman_with_red.png', {
-            frameWidth: 32, // 각 프레임의 너비
-            frameHeight: 64, // 각 프레임의 높이
-        });
-        this.load.spritesheet('snowman_with_yellow', 'images/players/snowman_with_yellow.png', {
-            frameWidth: 32, // 각 프레임의 너비
-            frameHeight: 64, // 각 프레임의 높이
-        });
-        this.load.spritesheet('snowman_with_green', 'images/players/snowman_with_green.png', {
-            frameWidth: 32, // 각 프레임의 너비
-            frameHeight: 64, // 각 프레임의 높이
-        });
-        this.load.spritesheet('dead_snowman', 'images/players/dead_snowman.png', {
-            frameWidth: 32, // 각 프레임의 너비
-            frameHeight: 64, // 각 프레임의 높이
-        });
-
+        this.load.image('snowman_with_red', 'images/players/snowman_with_red.png');
+        this.load.image('snowman_with_yellow', 'images/players/snowman_with_yellow.png');
+        this.load.image('snowman_with_green', 'images/players/snowman_with_green.png');
+        this.load.image('dead_snowman', 'images/players/dead_snowman.png');
         //executioner 프레임 및 애니메이션 로드
         this.load.atlas(
             'executioner',

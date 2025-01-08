@@ -41,7 +41,10 @@ export class Game extends Scene {
     taggerFrozenText!: Phaser.GameObjects.Text; // 술래에게 표시할 텍스트
 
     taggerCountdownText!: Phaser.GameObjects.Text; // 타이머 텍스트
-    taggerCountdown: number = 10; // 술래가 움직일 수 없는 시간 (10초)
+
+    // gameCountdownText!: Phaser.GameObjects.Text; // 전체 게임 타이머 텍스트
+    // timerFlag: boolean = false; // 태거 타이머 표시 끝남.
+
 
 
 
@@ -215,6 +218,7 @@ export class Game extends Scene {
         if (this.isDead) {
             this.player.anims.stop();
             client.emit('move', { dir: 'stop' });
+            this.player.setTexture('dead_snowman');
             return;
         }
 
@@ -333,9 +337,10 @@ export class Game extends Scene {
         client.off('remove');
         client.off('syncPosition');
 
-        client.on('timerStart', () => {
+        client.on('timerStart', (data) => {
             console.log('time_start in client');
-            this.displayCountdownText(10);
+            let duration = data;
+            this.displayCountdownText(duration);
         });
 
         client.on('timerUpdate', (data) => {
@@ -353,9 +358,10 @@ export class Game extends Scene {
         });
 
         client.on('gameover', () => {
-            this.time.delayedCall(5000, () => { // 5000ms = 5초
-                this.changeScene(); // 씬 전환
-            }, [], this);
+            // this.time.delayedCall(5000, () => { // 5000ms = 5초
+            //     this.changeScene(); // 씬 전환
+            // }, [], this);
+            this.changeScene();
         })
 
         client.on('playerOut', (data) => {
@@ -364,15 +370,19 @@ export class Game extends Scene {
             this.playerMap[playerId].isDead = true;
             this.playerMap[playerId].isFrozen = true;
             this.playerMap[playerId].sprite.setVelocity(0);
+            this.playerMap[playerId].sprite.setTexture('dead_snowman');
+
+            console.log(`${this.currentPlayerId}의 화면에서 ${playerId}의 아웃이 처리됨.`); 
 
             if (this.currentPlayerId == playerId) {
                 this.isDead = true;
                 this.isFrozen = true;
+                // this.player.anims.stop();
                 this.player.setTexture('dead_snowman');
                 this.player.setVelocity(0);
             }
-            this.playerMap[playerId].sprite.setTexture('dead_snowman')
-            console.log(`플레이어 ${playerId}가 탈락됨`)
+            // this.playerMap[playerId].sprite.anims.stop();
+            console.log(`플레이어 ${playerId}가 탈락됨`);
             // 플레이어 탈락시 모든 플레이어 얼음 상태를 해제시켜야함.
         })
 
