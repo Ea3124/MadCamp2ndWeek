@@ -15,12 +15,12 @@ const pool = new Pool({
 // 2) CREATE TABLE 쿼리
 const createUsersTableQuery = `
   CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
-    nickname VARCHAR(100) NOT NULL,
+    id VARCHAR(50) PRIMARY KEY,
     score INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  );
-`;
+    );
+    `;
+    // nickname VARCHAR(100) NOT NULL,
 
 async function runMigrations() {
   try {
