@@ -76,14 +76,21 @@ export class Preloader extends Scene
             'images/players/townfolk_atlas.json'
         );
         this.load.animation('townfolk_anim', 'images/players/townfolk_anim.json');
+        
+        this.load.image('tile1', 'maps/IceTileset.png');
+        this.load.image('tile2', 'maps/tf_winter_tileA1.png');
+        this.load.image('tile3', 'maps/tf_winter_tileA2.png');
+        this.load.image('tile4', 'maps/tf_winter_tileA5_cave.png');
+        this.load.image('tile5', 'maps/tf_winter_tileA5_outside.png');
+        this.load.image('tile6', 'maps/tf_winter_tileC.png');
+        this.load.image('tile7', 'maps/tf_winter_tileD.png');
+        this.load.image('tile8', 'maps/tf_winter_tileB.png');
+        
+        this.load.tilemapTiledJSON('map1', 'maps/tilemap1.json' );
+        this.load.tilemapTiledJSON('map2', 'maps/tilemap2.json' );
+        this.load.tilemapTiledJSON('map3', 'maps/tilemap3.json' );
 
-        this.load.image('tile1', 'images/IceTileset.png');
-        this.load.image('tile2', 'images/tf_winter_tileA2.png');
-        this.load.image('tile3', 'images/tf_winter_tileA5_cave.png');
-        this.load.image('tile4', 'images/tf_winter_tileB.png');
-        this.load.image('tile5', 'images/tf_winter_tileD.png');
 
-        this.load.tilemapTiledJSON('map', 'images/real_map2.json');
 
         this.load.script('webfont', 'https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js');
         

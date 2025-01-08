@@ -92,8 +92,8 @@ let roomTimers = {}; //{roomName: {countdown, intervalId}}
 function initializePlayer(socket, nickname) {
   if (!players[socket.id]) {
     players[socket.id] = {
-      x: 500,
-      y: 500,
+      x: 520,
+      y: 420,
       roomDetails: null,
       nickname: nickname || 'noname'
     }; // player의 속성으로 x, y, roomDeatils, nickname 생성

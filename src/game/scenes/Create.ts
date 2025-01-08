@@ -27,7 +27,7 @@ export class Create extends Scene {
     // 입력 내용
     roomName: string = '';
     password: string = '';
-    maps: string[] = ['Map1', 'Map2', 'Map3']; // 실제 맵 이름으로 변경 필요
+    maps: string[] = ['map1', 'map2', 'map3']; // 실제 맵 이름으로 변경 필요
 
     constructor() {
         super('Create');

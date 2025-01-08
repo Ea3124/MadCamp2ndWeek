@@ -13,6 +13,7 @@ export class Game extends Scene {
     player: Phaser.Physics.Arcade.Sprite;        
     private layer1!: Phaser.Tilemaps.TilemapLayer;
     private layer2!: Phaser.Tilemaps.TilemapLayer;
+    private layer3!: Phaser.Tilemaps.TilemapLayer;
 
     // 온라인으로 접속한 플레이어들의 스프라이트 목록
     playerMap: { [key: string]: { sprite: Phaser.Physics.Arcade.Sprite, character: string, isFrozen: boolean, isDead: boolean } } = {};
@@ -56,7 +57,8 @@ export class Game extends Scene {
     }
 
     init(data: any) {
-        this.map = data.map || 'defaultMap'; // 기본 맵 설정
+        this.map = data.map || 'map1'; // 기본 맵 설정
+        console.log("현재맵은: ", this.map);
         this.currentPlayerId = data.myId;
         this.playersInRoom = data.playersInRoom;
         this.playerIndex = (data.playersInRoom).findIndex( element => element.id === this.currentPlayerId);
@@ -70,21 +72,34 @@ export class Game extends Scene {
               
         this.cursors = this.input?.keyboard?.createCursorKeys()!;
          
-        const map = this.make.tilemap({ key: 'map' });
+        let map 
+        switch (this.map) {
+            case 'map1': map = this.make.tilemap({ key: 'map1'}); break;
+            case 'map2': map = this.make.tilemap({ key: 'map2'}); break;
+            case 'map3': map = this.make.tilemap({ key: 'map3'}); break;
+            default: map = this.make.tilemap({ key: 'map1'}); console.log("this.map에 다른 값이 있어 기본으로 설정됨.");
+        }
+
         const tileset1 = map.addTilesetImage('IceTileset', 'tile1', 32, 32, 0, 0) as Phaser.Tilemaps.Tileset;
-        const tileset2 = map.addTilesetImage('tf_winter_tileA2', 'tile2', 32, 32, 0, 0) as Phaser.Tilemaps.Tileset;
-        const tileset3 = map.addTilesetImage('tf_winter_tileA5_cave', 'tile3', 32, 32, 0, 0) as Phaser.Tilemaps.Tileset;
-        const tileset4 = map.addTilesetImage('tf_winter_tileB', 'tile4', 32, 32, 0, 0) as Phaser.Tilemaps.Tileset;
-        const tileset5 = map.addTilesetImage('tf_winter_tileD', 'tile5', 32, 32, 0, 0) as Phaser.Tilemaps.Tileset;
-        this.layer1 = map.createLayer('Tile Layer 1', [tileset1, tileset2, tileset3, tileset4, tileset5], 0, 0) as Phaser.Tilemaps.TilemapLayer;
-        this.layer2 = map.createLayer('Tile Layer 2', [tileset1, tileset2, tileset3, tileset4, tileset5], 0, 0) as Phaser.Tilemaps.TilemapLayer;
+        const tileset2 = map.addTilesetImage('tf_winter_tileA1', 'tile2', 32, 32, 0, 0) as Phaser.Tilemaps.Tileset;
+        const tileset3 = map.addTilesetImage('tf_winter_tileA2', 'tile3', 32, 32, 0, 0) as Phaser.Tilemaps.Tileset;
+        const tileset4 = map.addTilesetImage('tf_winter_tileA5_cave', 'tile4', 32, 32, 0, 0) as Phaser.Tilemaps.Tileset;
+        const tileset5 = map.addTilesetImage('tf_winter_tileA5_outside', 'tile5', 32, 32, 0, 0) as Phaser.Tilemaps.Tileset;
+        const tileset6 = map.addTilesetImage('tf_winter_tileC', 'tile6', 32, 32, 0, 0) as Phaser.Tilemaps.Tileset;
+        const tileset7 = map.addTilesetImage('tf_winter_tileD', 'tile7', 32, 32, 0, 0) as Phaser.Tilemaps.Tileset;
+        const tileset8 = map.addTilesetImage('tf_winter_tileB', 'tile8', 32, 32, 0, 0) as Phaser.Tilemaps.Tileset;
+        this.layer1 = map.createLayer('Tile Layer 1', [tileset1, tileset2, tileset3, tileset4, tileset5, tileset6, tileset7, tileset8], 0, 0) as Phaser.Tilemaps.TilemapLayer;
+        this.layer2 = map.createLayer('Tile Layer 2', [tileset1, tileset2, tileset3, tileset4, tileset5, tileset6, tileset7, tileset8], 0, 0) as Phaser.Tilemaps.TilemapLayer;
+        this.layer3 = map.createLayer('Tile Layer 3', [tileset1, tileset2, tileset3, tileset4, tileset5, tileset6, tileset7, tileset8], 0, 0) as Phaser.Tilemaps.TilemapLayer;
         console.log('createLayer success');
     
         this.layer1.setCollisionByProperty({ collides: true });
         this.layer2.setCollisionByProperty({ collides: true });
+        this.layer3.setCollisionByProperty({ collides: true });
         this.layer2.setDepth(2);
+        this.layer3.setDepth(3);
 
-        const { texture: character, sprite: player } = this.createCharacter(this.currentPlayerId, this.playerIndex, 500, 500);
+        const { texture: character, sprite: player } = this.createCharacter(this.currentPlayerId, this.playerIndex, 520, 420);
         this.myCharacter = character;
         this.player = player;
         console.log('Player body:', this.player.body);
@@ -104,12 +119,14 @@ export class Game extends Scene {
                 return; 
             }
             
-            const { texture: someTexture, sprite: otherSprite } = this.createCharacter(p.id, p.playerIndex, 500, 500);
+            const { texture: someTexture, sprite: otherSprite } = this.createCharacter(p.id, p.playerIndex, 520, 420);
             
             // playerMap에 등록해서 추후 위치 갱신 등에서 참조
             this.playerMap[p.id] = {sprite: otherSprite, character: someTexture, isFrozen: false, isDead: false};
         });
 
+
+        
         fetch('http://172.10.7.17:3000/api/users', {
             method: 'POST',
             headers: {
@@ -209,18 +226,6 @@ export class Game extends Scene {
         if (this.playerIndex !== 2) {
             this.showGameStartOverlay();
         }
-        
-
-        // // -----------------------------
-        // // 2) 3분 뒤에 "Game end!" 표시
-        // // -----------------------------
-        // this.time.addEvent({
-        //     delay: this.GAME_DURATION, 
-        //     callback: () => {
-        //         this.showGameEndText();
-        //     },
-        //     callbackScope: this
-        // });
 
         console.log('Game scene created successfully.');
 
@@ -624,6 +629,7 @@ export class Game extends Scene {
         sprite.setCollideWorldBounds(true);
         if (this.layer1) this.physics.add.collider(sprite, this.layer1);
         if (this.layer2) this.physics.add.collider(sprite, this.layer2);
+        if (this.layer3) this.physics.add.collider(sprite, this.layer3);
         return { texture, sprite };
     }        
 
