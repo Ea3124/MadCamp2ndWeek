@@ -44,7 +44,7 @@ export class Game extends Scene {
 
     // --------- 추가: 타이머 관련 프로퍼티 ---------
     // 3분 = 180초 (ms 단위로는 180*1000 = 180000)
-    private GAME_DURATION: number = 180000; 
+    private GAME_DURATION: number = 80000; 
     private startOverlay!: Phaser.GameObjects.Rectangle;
     private startOverlay2!: Phaser.GameObjects.Rectangle;
     private startText!: Phaser.GameObjects.Text;
@@ -448,7 +448,7 @@ export class Game extends Scene {
                         this.myScore = 0;
                     } else if (!this.isDead) { // 게임이 끝날때까지 죽지 않은 경우,
                         console.log("마지막까지 생존함.");
-                        this.myScore = 180000;
+                        this.myScore = 12000;
                     }
                     this.showGameEndText()
                 }
@@ -458,7 +458,7 @@ export class Game extends Scene {
         client.on('gameover', () => {
             // 술래가 모두 잡아서 게임이 종료됨.
             if (this.playerIndex == 2) {
-                this.myScore = 180000;
+                this.myScore = 36000;
                 console.log("나의 스코어는: ", this.myScore);
             }
             this.showGameEndText()
@@ -674,7 +674,7 @@ export class Game extends Scene {
     // -----------------------------
     //  (추가) 3분 뒤 표시할 텍스트
     // -----------------------------
-    private showGameEndText() {
+    private async showGameEndText() {
         const { width, height } = this.sys.game.canvas;
 
         this.endOverlay = this.add.rectangle(
@@ -693,15 +693,39 @@ export class Game extends Scene {
             height / 2,
             'Game end!',
             {
-                fontSize: '40px',
-                color: '#ff0000',
+                fontFamily: 'Arial Black',
+                fontSize: '64px',
+                color: '#FFFFFF',
                 fontStyle: 'bold',
-                backgroundColor: '#000000'
+                stroke: '#000000',
+                strokeThickness: 4, 
             }
         )
         .setOrigin(0.5)
         .setDepth(200);
         this.endText.setScrollFactor(0);
+        
+
+        await fetch('http://172.10.7.17:3000/api/users/score', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id: this.currentPlayerId,
+                score: this.myScore
+            })
+        })
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(`score 업데이트 에러: ${res.status}`);
+            }
+            return res.json();
+        })
+        .then(data => {
+            console.log('score 업데이트 결과:', data);
+        })
+        .catch(error => {
+            console.error('score 업데이트 실패:', error);
+        });
 
         // 필요하다면 씬 전환이나 다른 로직 수행도 가능
         this.time.delayedCall(3000, () => { this.changeScene(); });
