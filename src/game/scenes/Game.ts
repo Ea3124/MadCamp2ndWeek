@@ -30,6 +30,7 @@ export class Game extends Scene {
     myCharacter: string; // 내 sprite에 인물 저장.
     cursors: Phaser.Types.Input.Keyboard.CursorKeys;
     map: string;
+    myNickname: string;
 
     isFrozen: boolean = false; // 얼음 상태 관리
     overlapCooldown: boolean;
@@ -100,9 +101,11 @@ export class Game extends Scene {
         // 선택된 맵을 배경으로 설정
         // this.background = this.add.image(512, 384, this.map).setAlpha(0.5);
 
-        this.playersInRoom.forEach((p: { id: string; playerIndex: number }, i: number) => {
+        this.playersInRoom.forEach((p: { id: string; playerIndex: number, nickname: string}, i: number) => {
             // 자기 자신이면 pass
             if (p.id === this.currentPlayerId) {
+                this.myNickname = p.nickname;
+                console.log(`나의 닉네임: ${this.myNickname}`);
                 this.playerMap[this.currentPlayerId] = {sprite: this.player, character: this.myCharacter, isFrozen: false, isDead: false};
                 return; 
             }

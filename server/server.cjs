@@ -467,10 +467,21 @@ io.on('connection', (socket) => {
     // 게임 시작
     room.status = 'started';
     const playersInRoom = room.players.map(id => {
-      return { id, playerIndex: players[id].roomDetails[1] };
+      // players 객체에서 id를 사용해 해당 플레이어의 정보를 가져옵니다.
+      const player = players[id];
+      return {
+        id: id,
+        playerIndex: player.roomDetails[1],
+        nickname: player.nickname // player 객체에서 nickname 속성을 추가합니다.
+      };
     });
+
+    // 이제 playersInRoom 배열의 각 요소에 nickname이 포함되어 있습니다.
+    playersInRoom.forEach(player => {
+      console.log(`${player.id}의 닉네임으로 ${player.nickname}이 전달됨`);
+    });
+
     io.to(roomName).emit('startgame', playersInRoom); // 방 내 모든 클라이언트에게 게임 시작 신호 전송
-    
     io.emit('roomlist_update', getRoomList());
     console.log(`[socket.on(startgame)] 방 ${roomName}에서 게임을 시작합니다.`);
   });
