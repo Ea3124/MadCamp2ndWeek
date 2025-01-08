@@ -25,6 +25,18 @@ export class GameOver extends Scene
             stroke: '#000000', strokeThickness: 8,
             align: 'center'
         }).setOrigin(0.5).setDepth(100);
+
+
+        // (예시) 게임 씬이 실행될 때, 서버의 /api/users 엔드포인트로 GET 요청을 보내고 싶다면:
+        fetch('http://172.10.7.17:3000/api/users')
+        .then((res) => res.json())
+        .then((data) => {
+            console.log('서버로부터 받은 데이터:', data);
+        })
+        .catch((error) => {
+            console.error('데이터 가져오기 에러:', error);
+        });
+    
         
         EventBus.emit('current-scene-ready', this);
     }
