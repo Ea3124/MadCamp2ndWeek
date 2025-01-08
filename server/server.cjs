@@ -47,18 +47,18 @@ app.get('/api/users', async (req, res) => {
 
 app.post('/api/users', async (req, res) => {
   try {
-    const { id, score } = req.body; 
+    const { id, nickname, score } = req.body; 
     // 각 값이 제대로 넘어오는지 확인해보세요.
 
     // users 테이블: (id VARCHAR(50) PRIMARY KEY, nickname VARCHAR(100), score INT, created_at ...)
     const query = `
-      INSERT INTO users (id, score) 
-      VALUES ($1, $2)
+      INSERT INTO users (id, nickname, score) 
+      VALUES ($1, $2, $3)
       ON CONFLICT (id) DO NOTHING
       -- ON CONFLICT (id) DO NOTHING:
       -- 이미 같은 id가 있으면 그냥 무시 (중복 삽입 에러 방지)
     `;
-    await pool.query(query, [id, score]);
+    await pool.query(query, [id, nickname, score]);
 
     // 성공 응답
     return res.status(200).json({ success: true, message: 'User inserted or already exists' });

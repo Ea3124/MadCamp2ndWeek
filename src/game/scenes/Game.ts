@@ -5,19 +5,11 @@ import { EventBus } from '../EventBus';
 import Phaser from 'phaser';
 import { client } from '../socket';  // socket.ts에서 import
 
-interface GameInitData {
-    map: string;
-    myId: string;
-    playersInRoom: any; // 정확하게 바꿀것.
-}
-
-
 export class Game extends Scene {
     
     currentPlayerId: string;
     camera: Phaser.Cameras.Scene2D.Camera;
     background: Phaser.GameObjects.Image;
-    // gameText: Phaser.GameObjects.Text;
     player: Phaser.Physics.Arcade.Sprite;        
     private layer1!: Phaser.Tilemaps.TilemapLayer;
     private layer2!: Phaser.Tilemaps.TilemapLayer;
@@ -53,6 +45,7 @@ export class Game extends Scene {
     // 3분 = 180초 (ms 단위로는 180*1000 = 180000)
     private GAME_DURATION: number = 180000; 
     private startOverlay!: Phaser.GameObjects.Rectangle;
+    private startOverlay2!: Phaser.GameObjects.Rectangle;
     private startText!: Phaser.GameObjects.Text;
     private endOverlay!: Phaser.GameObjects.Rectangle;
     private endText!: Phaser.GameObjects.Text;
@@ -123,7 +116,7 @@ export class Game extends Scene {
             },
             body: JSON.stringify({
                 id: this.currentPlayerId,
-                // nickname: this.nickname,
+                nickname: this.myNickname,
                 score: 0
             })
         })
@@ -212,7 +205,9 @@ export class Game extends Scene {
         // -----------------------------
         // 1) 게임 시작 시 어둑한 배경 + "Game Start!" 표시
         // -----------------------------
-        this.showGameStartOverlay();
+        if (this.playerIndex !== 2) {
+            this.showGameStartOverlay();
+        }
         
 
         // -----------------------------
@@ -286,11 +281,28 @@ export class Game extends Scene {
 
     displayTaggerMessage() {
         const { width, height } = this.sys.game.canvas;
+        
+        // 살짝 어두워진 반투명 사각형(씬 전체 덮음)
+        this.startOverlay2 = this.add.rectangle(
+            width / 2, 
+            height / 2, 
+            width, 
+            height, 
+            0x000000, 
+            0.4
+        );
+        this.startOverlay2.setScrollFactor(0);  
+        this.startOverlay2.setDepth(100);
+        
         this.taggerFrozenText = this.add.text(width / 2, height / 2, '당신은 술래입니다! 10초 동안 움직일 수 없습니다!', {
-            fontSize: '24px',
+            fontFamily: 'Arial Black',
+            fontSize: 24,
             color: '#ffffff',
-            backgroundColor: '#ff0000'
+            stroke: '#ff0000',
+            strokeThickness: 4,
         }).setOrigin(0.5);
+        this.taggerFrozenText.setScrollFactor(0);
+        this.taggerFrozenText.setDepth(101);
 
         this.isTaggerFrozen = true; // 술래 움직임 제한 시작
         this.isFrozen = true;
@@ -302,6 +314,7 @@ export class Game extends Scene {
             this.isTaggerFrozen = false; // 10초 후 움직임 제한 해제
             this.isFrozen = false;
             client.emit('frozen', false);
+            this.startOverlay2.destroy();
             this.taggerFrozenText.destroy(); // 텍스트 제거
             console.log('타이머 해제');
         });
@@ -309,11 +322,13 @@ export class Game extends Scene {
 
     displayCountdownText(countdown: number) {
         const { width, height } = this.sys.game.canvas;
-        this.taggerCountdownText = this.add.text(width / 2, height * 0.1, `Timer: ${countdown}s`, {
-            fontSize: '32px',
-            color: '#000000',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
+        this.taggerCountdownText = this.add.text(width *0.05, height * 0.05, `Timer: ${countdown}s`, {
+            fontFamily: 'Arial Black',
+            fontSize: 24,
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 4,
+        }).setOrigin(0,0);
         this.taggerCountdownText.setScrollFactor(0);
         this.taggerCountdownText.setDepth(200);
     }
