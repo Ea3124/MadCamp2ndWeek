@@ -1,5 +1,6 @@
 // server/server.cjs
 require('dotenv').config(); // dotenv 불러오기
+const { default: e } = require('express');
 const express = require('express');
 const http = require('http');
 
@@ -55,9 +56,9 @@ app.get('/', (req, res) => {
 // 플레이어와 방 정보를 저장 -> 이때 플레이어에 roomId를 부여해서 같은 방에 참여한 애들을 구분할 수 있게함.
 let players = {}; // { socketId: {x, y, roomDetails, nickname}, .. }  socketId를 key로, x, y, roomDetails, nickname을 value로
 // 이때, roomDetails = [roomName, playerIndex, frozen, isDead] 배열
-let rooms = {}; // {roomName: { map, password, player}}
+let rooms = {}; // {roomName: { map, password, player, aliveNum}}
 // 방별 타이머 관리를 위한 객체
-let roomTimers = {};
+let roomTimers = {}; //{roomName: {countdown, intervalId}}
 
 //플레이어 초기화 함수
 function initializePlayer(socket, nickname) {
@@ -109,7 +110,7 @@ setInterval(() => {
       y: p.y
     });
   }
-}, 10);
+}, 100);
 
 // 타이머 시작 함수
 function startTimer(data) {
@@ -117,29 +118,31 @@ function startTimer(data) {
   const { roomName, duration } = data;
   const countdown = duration / 1000;
   const room = rooms[roomName];
-  roomTimers[roomName] = countdown;
-
+  
   // 이미 타이머가 실행 중인지 확인
   if (roomTimers[roomName]?.intervalId) {
     console.log(`타이머가 이미 실행 중인 방: ${roomName}`);
     return; // 타이머가 이미 실행 중이라면 중복 시작하지 않음
   }
-
+  
+  roomTimers[roomName] = { countdown };
   console.log(`Timer started for room ${roomName} with ${countdown} seconds.`);
   console.log(room.players);
 
   const intervalId = setInterval(() => {
-    if (roomTimers[roomName] > 0) {
-      roomTimers[roomName]--;
-      console.log(`Timer ticking for room ${roomName}: ${roomTimers[roomName]} seconds left.`);
+    if (roomTimers[roomName].countdown > 0) {
+      roomTimers[roomName].countdown--;
+      console.log(`Timer ticking for room ${roomName}: ${roomTimers[roomName].countdown} seconds left.`);
       // 타이머 업데이트를 방에 브로드캐스트
-      io.to(roomName).emit('timerUpdate', { countdown: roomTimers[roomName] });
+      io.to(roomName).emit('timerUpdate', { countdown: roomTimers[roomName].countdown });
     } else {
       clearInterval(intervalId);
+      delete roomTimers[roomName];
       io.to(roomName).emit('timerEnd');
       console.log(`Timer ended for room ${roomName}.`);
     }
   }, 1000);
+  roomTimers[roomName].intervalId = intervalId; // intervalId 저장
 }
 
 
@@ -184,6 +187,34 @@ io.on('connection', (socket) => {
     //   "nickname": "Alice",
     // } 
   });
+
+  socket.on('frozenRequest', () => {
+    // frozenRequest에 응답
+    // 생존자 수
+    const player = players[socket.id];
+    if (!player || !player.roomDetails) {
+      console.warn(`[frozenRequest] Player data or roomDetails missing for socket id: ${socket.id}`);
+      return;
+    }
+    const roomName = player.roomDetails[0];
+    const room = rooms[roomName];
+    let aliveCount = 0; // 생존자 수를 0으로 초기화
+    const alive = room.aliveNum;
+    // roomName이 같고, frozen 상태가 아니며, dead 상태도 아닌 플레이어 수 계산
+    for (const id in players) {
+      const p = players[id];
+      if (p.roomDetails[0] === roomName && !p.roomDetails[2] && !p.roomDetails[3]) {// 죽은 것도 아니고, frozen도 아니어야함.
+        aliveCount++;
+      }
+    }
+    console.log(`현재 룸에 남은 생존자는: ${alive}, 생존자 중 frozen상태가 아닌 사람은: ${aliveCount}`);
+    if (aliveCount !== 2 ) {
+      players[socket.id].roomDetails[2] = true;
+      io.to(roomName).emit('frozen', {id: socket.id, isFrozen: true});
+    } else if (aliveCount == 1) {
+      console.log('뭐지 왜 aliveCount in frozenRequest가 1이지');
+    } 
+  })
   
   // *** 'frozen' 이벤트 처리 ***
   socket.on('frozen', (data) => {
@@ -231,6 +262,7 @@ io.on('connection', (socket) => {
     const aPlayer = players[aId];
     const bPlayer = players[bId];
     const roomName = aPlayer.roomDetails[0];
+    // const room = rooms[roomName];
     let playerTaggerId = null; 
 
     if (aPlayer.roomDetails[3] || bPlayer.roomDetails[3]) {
@@ -253,19 +285,17 @@ io.on('connection', (socket) => {
       // 둘 다 술래가 아님
       
       // 둘 중 하나라도 isFrozen 이 true
-      if ( aPlayer.roomDetails[2] ) {
-        if ( !bPlayer.roomDetails[2] ) {
-          // aPlayer가 frozen, bPlayer가 not frozen
-          console.log(`서버가 받음: 플레이어 a: ${aId}와 b: ${bId}가 겹쳐서 a가 땡됨`);
-          io.to(roomName).emit('frozen', {id: aId, isFrozen: false}); 
-        }
+      if ( aPlayer.roomDetails[2] && !bPlayer.roomDetails[2]) {  
+        // aPlayer가 frozen, bPlayer가 not frozen
+        console.log(`서버가 받음: 플레이어 a: ${aId}와 b: ${bId}가 겹쳐서 a가 땡됨`);
+        aPlayer.roomDetails[2] = false;
+        io.to(roomName).emit('frozen', {id: aId, isFrozen: false});   
       } 
-      if ( bPlayer.roomDetails[2] ) {
-        if ( !aPlayer.roomDetails[2] ) {
-          // bPlayer가 frozen, aPlayer가 not frozen
-          console.log(`서버가 받음: 플레이어 a: ${aId}와 b: ${bId}가 겹쳐서 b가 땡됨`); 
-          io.to(roomName).emit('frozen', {id: bId, isFrozen: false});
-        }
+      if ( bPlayer.roomDetails[2] && !aPlayer.roomDetails[2]) {
+        // bPlayer가 frozen, aPlayer가 not frozen
+        console.log(`서버가 받음: 플레이어 a: ${aId}와 b: ${bId}가 겹쳐서 b가 땡됨`); 
+        bPlayer.roomDetails[2] = false;
+        io.to(roomName).emit('frozen', {id: bId, isFrozen: false});
       }
     } else { // 둘 중 하나가 술래임.
       // console.log("술래와 겹침");
@@ -274,11 +304,30 @@ io.on('connection', (socket) => {
         if (playerTaggerId == aId) {
           io.to(roomName).emit('playerOut', bId );
           bPlayer.roomDetails[3] = true;
+          rooms[roomName].aliveNum = rooms[roomName].aliveNum - 1;
           console.log(`서버가 받음: 플레이어 a: ${aId}와 b: ${bId}가 겹쳐서 ${bId}가 탈락됨`); 
         } else if (playerTaggerId == bId) {
           io.to(roomName).emit('playerOut', aId );
+          aPlayer.roomDetails[3] = true;
+          rooms[roomName].aliveNum = rooms[roomName].aliveNum - 1;
           console.log(`서버가 받음: 플레이어 a: ${aId}와 b: ${bId}가 겹쳐서 ${aId}가 탈락됨`); 
-        } 
+        }
+        // 탈락한 플레이어가 발생했으므로, 방에 있는 사람중 죽지 않은 사람은 모두 isFrozen을 해제하기
+        for (const [id, p] of Object.entries(players)) {
+          if (p.roomDetails[0] == roomName) {
+            if (!p.roomDetails[3]) {
+              io.to(roomName).emit('frozen', {id: id, isFrozen: false});
+              p.roomDetails[2] = false;
+            }
+          }
+        }
+        if (rooms[roomName].aliveNum == 1) {
+          io.to(roomName).emit('gameover');
+          console.log('생존자 1명 (술래)이므로 게임을 종료합니다.');
+        } else if (rooms[roomName].aliveNum == 0) {
+          console.log("왜 생존자가 0 명 ??");
+        }
+        console.log(`플레이어의 탈락으로 현재 생존자 수는 ${rooms[roomName].aliveNum}`);
       }
     }
     // 원하는 로직 수행
@@ -310,7 +359,8 @@ io.on('connection', (socket) => {
       password: password || null,
       players: [socket.id],
       leader: socket.id, // 방장
-      status: 'waiting' // 초기상태는 waiting
+      status: 'waiting', // 초기상태는 waiting
+      aliveNum: 1
     };
 
     socket.join(roomName);
@@ -351,7 +401,8 @@ io.on('connection', (socket) => {
       return;
     }
     
-    playerIndex = room.players.length; // 0, 1, 2, 3
+    const playerIndex = room.players.length; // 0, 1, 2, 3
+    room.aliveNum += 1; // 플레이어가 추가될 때 aliveNum 증가
     console.log("playerIndex: ",playerIndex);
     console.log("myId",socket.id);
     room.players.push(socket.id);
@@ -433,24 +484,27 @@ io.on('connection', (socket) => {
     if (room) {
       room.players = room.players.filter(id => id !== socket.id);
       socket.leave(roomName);
+      delete players[socket.id];
       players[socket.id].roomDetails = null;
 
-      // 방이 비었으면 삭제
+      // 1. 방이 비었으면 삭제 (타이머도 정리)
       if (room.players.length === 0) {
+        if (roomTimers[roomName]?.intervalId) {
+          clearInterval(roomTimers[roomName].intervalId);
+          delete roomTimers[roomName];
+        }
         delete rooms[roomName];
         console.log(`방 ${roomName}이(가) 비어서 삭제됨.`);
-      } else {
-        // 방장이 떠났다면 새로운 방장을 지정
+      } else { 
+        // 2. 방장이 떠났다면 새로운 방장을 지정
         if (room.leader === socket.id) {
           room.leader == room.players[0];
           io.to(roomName).emit('new_leader', { leader: room.leader});
           console.log(`[socket.on(leaveroom)] 방 ${roomName}의 새로운 방장: ${room.leader}`);
         }
-
         // 방 내 다른 플레이어들에게 플레이어가 떠났음을 알림
         socket.to(roomName).emit('remove', socket.id);
       }
-
       // 성공 응답 전송
       socket.emit('leaveroom_response', { success: true });
 
@@ -460,6 +514,7 @@ io.on('connection', (socket) => {
     } else {
       socket.emit('leaveroom_response', { success: false, message: '방이 존재하지 않습니다.' });
     }
+
   });
 
 

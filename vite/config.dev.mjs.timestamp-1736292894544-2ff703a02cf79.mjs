@@ -1,0 +1,16 @@
+// vite/config.dev.mjs
+import { defineConfig } from "file:///root/my-phaser-game/MadCamp2ndWeek/node_modules/vite/dist/node/index.js";
+import { sveltekit } from "file:///root/my-phaser-game/MadCamp2ndWeek/node_modules/@sveltejs/kit/src/exports/vite/index.js";
+var config_dev_default = defineConfig({
+  plugins: [
+    sveltekit()
+  ],
+  server: {
+    host: "0.0.0.0",
+    port: 8080
+  }
+});
+export {
+  config_dev_default as default
+};
+//# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJzaW9uIjogMywKICAic291cmNlcyI6IFsidml0ZS9jb25maWcuZGV2Lm1qcyJdLAogICJzb3VyY2VzQ29udGVudCI6IFsiY29uc3QgX192aXRlX2luamVjdGVkX29yaWdpbmFsX2Rpcm5hbWUgPSBcIi9yb290L215LXBoYXNlci1nYW1lL01hZENhbXAybmRXZWVrL3ZpdGVcIjtjb25zdCBfX3ZpdGVfaW5qZWN0ZWRfb3JpZ2luYWxfZmlsZW5hbWUgPSBcIi9yb290L215LXBoYXNlci1nYW1lL01hZENhbXAybmRXZWVrL3ZpdGUvY29uZmlnLmRldi5tanNcIjtjb25zdCBfX3ZpdGVfaW5qZWN0ZWRfb3JpZ2luYWxfaW1wb3J0X21ldGFfdXJsID0gXCJmaWxlOi8vL3Jvb3QvbXktcGhhc2VyLWdhbWUvTWFkQ2FtcDJuZFdlZWsvdml0ZS9jb25maWcuZGV2Lm1qc1wiO2ltcG9ydCB7IGRlZmluZUNvbmZpZyB9IGZyb20gJ3ZpdGUnO1xuaW1wb3J0IHsgc3ZlbHRla2l0IH0gZnJvbSAnQHN2ZWx0ZWpzL2tpdC92aXRlJztcblxuLy8gaHR0cHM6Ly92aXRlanMuZGV2L2NvbmZpZy9cbmV4cG9ydCBkZWZhdWx0IGRlZmluZUNvbmZpZyh7XG5cdHBsdWdpbnM6IFtcblx0XHRzdmVsdGVraXQoKSxcblx0XSxcblx0c2VydmVyOiB7XG5cdFx0aG9zdDogJzAuMC4wLjAnLFxuXHRcdHBvcnQ6IDgwODBcblx0fVxufSlcbiJdLAogICJtYXBwaW5ncyI6ICI7QUFBMFMsU0FBUyxvQkFBb0I7QUFDdlUsU0FBUyxpQkFBaUI7QUFHMUIsSUFBTyxxQkFBUSxhQUFhO0FBQUEsRUFDM0IsU0FBUztBQUFBLElBQ1IsVUFBVTtBQUFBLEVBQ1g7QUFBQSxFQUNBLFFBQVE7QUFBQSxJQUNQLE1BQU07QUFBQSxJQUNOLE1BQU07QUFBQSxFQUNQO0FBQ0QsQ0FBQzsiLAogICJuYW1lcyI6IFtdCn0K
