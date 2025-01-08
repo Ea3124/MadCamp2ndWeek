@@ -16,6 +16,7 @@ const pool = new Pool({
 const createUsersTableQuery = `
   CREATE TABLE IF NOT EXISTS users (
     id VARCHAR(50) PRIMARY KEY,
+    nickname VARCHAR(100) NOT NULL,
     score INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
