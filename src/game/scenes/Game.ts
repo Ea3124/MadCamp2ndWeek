@@ -142,31 +142,39 @@ export class Game extends Scene {
         this.player.setDepth(1);
 
         // '얼음' 상태 토글 이벤트
-        this.input.keyboard?.on('keydown-F', () => {
-            this.isFrozen = true; // F 키로 얼음 상태로 만듦.
-            this.playerMap[this.currentPlayerId].isFrozen = true;
-            if (this.isDead) return;
-            // 해당 눈사람 이미지 모두 변경시키기
-            if (this.isFrozen) {
-                this.player.setVelocity(0); // 얼음 상태면 움직임을 멈춤
-                switch(this.myCharacter) {
-                    case 'princess': 
-                        this.player.setTexture('snowman_with_yellow');
-                        break;
-                    case 'knight': 
-                        this.player.setTexture('snowman_with_green');
-                        break;
-                    case 'townfolk': 
-                        this.player.setTexture('snowman_with_red');
-                        break;
-                    default:
-                        console.log("[client.on(frozen)] 오류 발생");
-                }
-                // this.player.setTexture('snowman_with_red');
-                client.emit('frozen', true);
-                //얼음 상태이면 눈사람으로 변신.
-            } 
-        });
+        if (this.playerIndex != 2) {
+            this.input.keyboard?.on('keydown-F', () => {
+                client.emit('frozenRequest');
+            })
+        }
+        // this.input.keyboard?.on('keydown-F', () => {
+        //     client.emit('frozenRequest');
+        //     // 술래면 해당 토글 이벤트 자체를 없애야 겠다.
+        //     this.isFrozen = true; // F 키로 얼음 상태로 만듦.
+        //     this.playerMap[this.currentPlayerId].isFrozen = true;
+        //     if (this.isDead) return;
+        //     // 해당 눈사람 이미지 모두 변경시키기
+        //     if (this.isFrozen) {
+        //         this.player.setVelocity(0); // 얼음 상태면 움직임을 멈춤
+        //         switch(this.myCharacter) {
+        //             case 'princess': 
+        //                 this.player.setTexture('snowman_with_yellow');
+        //                 break;
+        //             case 'knight': 
+        //                 this.player.setTexture('snowman_with_green');
+        //                 break;
+        //             case 'townfolk': 
+        //                 this.player.setTexture('snowman_with_red');
+        //                 break;
+        //             default:
+        //                 console.log("[client.on(frozen)] 오류 발생");
+        //         }
+        //         // this.player.setTexture('snowman_with_red');
+        //         client.emit('frozen', true);
+        //         //얼음 상태이면 눈사람으로 변신.
+        //     } 
+        // })
+        
         
 
         this.cursors = this.input?.keyboard?.createCursorKeys()!;
@@ -194,18 +202,21 @@ export class Game extends Scene {
     }
 
     update(time: number, delta: number) {
-        if (this.isDead) return;
         if (!this.player || !this.cursors) return;
-        // isFrozen 이 true이면, 안 움직이도록 함.
+        let moving = false;
+        // 기존 이동 로직
+        this.player.setVelocity(0);
+
         if (this.isFrozen) {
             client.emit('move', { dir: 'stop' });
             this.player.anims.stop();
             return
         };
-        let moving = false;
-      
-        // 기존 이동 로직
-        this.player.setVelocity(0);
+        if (this.isDead) {
+            this.player.anims.stop();
+            client.emit('move', { dir: 'stop' });
+            return;
+        }
 
         if (this.cursors.left.isDown) {
             this.player.setVelocityX(-170);
@@ -321,9 +332,6 @@ export class Game extends Scene {
         client.off('move');
         client.off('remove');
         client.off('syncPosition');
-        client.off('timerStart');
-        client.off('timerUpdate');
-        client.off('timerEnd');
 
         client.on('timerStart', () => {
             console.log('time_start in client');
@@ -344,15 +352,28 @@ export class Game extends Scene {
             }
         });
 
+        client.on('gameover', () => {
+            this.time.delayedCall(5000, () => { // 5000ms = 5초
+                this.changeScene(); // 씬 전환
+            }, [], this);
+        })
+
         client.on('playerOut', (data) => {
             // if (this.isDead) return;
             const playerId = data;
             this.playerMap[playerId].isDead = true;
+            this.playerMap[playerId].isFrozen = true;
+            this.playerMap[playerId].sprite.setVelocity(0);
+
             if (this.currentPlayerId == playerId) {
                 this.isDead = true;
+                this.isFrozen = true;
+                this.player.setTexture('dead_snowman');
+                this.player.setVelocity(0);
             }
             this.playerMap[playerId].sprite.setTexture('dead_snowman')
             console.log(`플레이어 ${playerId}가 탈락됨`)
+            // 플레이어 탈락시 모든 플레이어 얼음 상태를 해제시켜야함.
         })
 
         client.on('frozen', (data) => {
@@ -360,13 +381,6 @@ export class Game extends Scene {
             const isFrozen = data.isFrozen;
             const id = data.id;
             const character = this.playerMap[data.id].character;
-
-            // if ( !isFrozen ) { // 땡이 들어옴.
-            //     if ( !this.playerMap[id].isFrozen ) { // 이미 땡 상태임.
-            //         return;
-            //     }
-            // }
-
 
             // 이미 해당 상태라면 추가 처리 없이 종료
             if (this.playerMap[id].isFrozen === isFrozen) {
@@ -378,6 +392,9 @@ export class Game extends Scene {
 
             if (id == this.currentPlayerId ) {
                 this.isFrozen = isFrozen;
+                if (isFrozen) {
+                    this.player.setVelocity(0); // 얼음 상태면 움직임을 멈춤
+                }
             }
             console.log("Frozen state changed for player:", id);
 
