@@ -270,9 +270,6 @@ io.on('connection', (socket) => {
   // *** 'startGameTimer' 이벤트 처리 ***
   socket.on('startGameTimer', (data) => {
     const duration  = data;
-    // if (this.) {
-
-    // }
     const roomName = players[socket.id].roomDetails[0]; 
     startTimer({roomName: roomName, duration: duration});
     io.to(roomName).emit('timerStart', duration);

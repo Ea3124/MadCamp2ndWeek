@@ -31,6 +31,7 @@ export class Game extends Scene {
     cursors: Phaser.Types.Input.Keyboard.CursorKeys;
     map: string;
     myNickname: string;
+    myScore: number; // 술래면 게임 남은 시간, 그 외 플레이어면 잡힌 시점의 시각 
 
     isFrozen: boolean = false; // 얼음 상태 관리
     overlapCooldown: boolean;
@@ -43,10 +44,9 @@ export class Game extends Scene {
 
     taggerCountdownText!: Phaser.GameObjects.Text; // 타이머 텍스트
 
-    // gameCountdownText!: Phaser.GameObjects.Text; // 전체 게임 타이머 텍스트
-    // timerFlag: boolean = false; // 태거 타이머 표시 끝남.
-
-
+    gameCountdownText!: Phaser.GameObjects.Text; // 전체 게임 타이머 텍스트
+    timerFlag: boolean = false; // 태거 타이머 표시 끝남.
+    nowTime: number; // 현재 남은 시간 나타냄. (ms단위)
 
 
     // --------- 추가: 타이머 관련 프로퍼티 ---------
@@ -69,6 +69,7 @@ export class Game extends Scene {
         this.playerIndex = (data.playersInRoom).findIndex( element => element.id === this.currentPlayerId);
         console.log(`index: ${this.playerIndex}, id: ${this.currentPlayerId}`);
         this.isDead = false;
+        this.timerFlag = false; // 술래의 타이머를 이미 실행했는가?
     }
 
     create() {
@@ -215,16 +216,16 @@ export class Game extends Scene {
         this.showGameStartOverlay();
         
 
-        // -----------------------------
-        // 2) 3분 뒤에 "Game end!" 표시
-        // -----------------------------
-        this.time.addEvent({
-            delay: this.GAME_DURATION, 
-            callback: () => {
-                this.showGameEndText();
-            },
-            callbackScope: this
-        });
+        // // -----------------------------
+        // // 2) 3분 뒤에 "Game end!" 표시
+        // // -----------------------------
+        // this.time.addEvent({
+        //     delay: this.GAME_DURATION, 
+        //     callback: () => {
+        //         this.showGameEndText();
+        //     },
+        //     callbackScope: this
+        // });
 
         console.log('Game scene created successfully.');
 
@@ -298,7 +299,11 @@ export class Game extends Scene {
         client.emit('startGameTimer', 10000 );  // 술래가 타이머 시작을 요청.
         console.log('startGameTimer emitted');
 
-        this.time.delayedCall(10000, () => {
+        this.time.delayedCall(8000, () => {
+            client.emit('startGameTimer', this.GAME_DURATION);
+        })
+
+        this.time.delayedCall(9000, () => {
             this.isTaggerFrozen = false; // 10초 후 움직임 제한 해제
             this.isFrozen = false;
             client.emit('frozen', false);
@@ -307,10 +312,24 @@ export class Game extends Scene {
         });
     }
 
+    // 술래 못 움직이는 시간 출력
     displayCountdownText(countdown: number) {
         const { width, height } = this.sys.game.canvas;
         this.taggerCountdownText = this.add.text(width / 2, height * 0.1, `Timer: ${countdown}s`, {
             fontSize: '32px',
+            color: '#000000',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.taggerCountdownText.setScrollFactor(0);
+        this.taggerCountdownText.setDepth(200);
+    }
+
+    // 전체 시간 출력
+    displayCountdownText2(countdown: number) {
+        const { width, height } = this.sys.game.canvas;
+        const countfordisplay = countdown / 1000; 
+        this.gameCountdownText = this.add.text(width / 2, height * 0.1, `Timer: ${countfordisplay}s`, {
+            fontSize: '42px',
             color: '#000000',
             fontStyle: 'bold'
         }).setOrigin(0.5);
@@ -367,28 +386,62 @@ export class Game extends Scene {
         client.on('timerStart', (data) => {
             console.log('time_start in client');
             let duration = data;
-            this.displayCountdownText(duration);
+            if (!this.timerFlag) {// this.timerFlag가 false이면 (즉, 술래 타이머를 아직 실행하지 않았으면,)
+                this.displayCountdownText(duration);
+                // this.timerFlag
+            } else {
+                this.displayCountdownText2(duration);
+                this.nowTime = duration;
+                console.log(this.nowTime);
+            }
         });
 
         client.on('timerUpdate', (data) => {
             const { countdown } = data;
-            this.taggerCountdownText.setText(`Timer: ${countdown}s`);
+            if (!this.timerFlag) {// this.timerFlag가 false이면 (즉, 술래 타이머를 아직 실행하지 않았으면,)
+                this.taggerCountdownText.setText(`Timer: ${countdown}s`);
+                // this.timerFlag
+            } else {
+                this.gameCountdownText.setText(`Timer: ${countdown}s`);
+                this.nowTime = countdown * 1000;
+                console.log(this.nowTime);
+            }
         });
         
-        client.on('timerEnd', () => {
-            if (this.taggerCountdownText) {
-                this.taggerCountdownText.setText('Time\'s up!');
-                setTimeout(() => {
-                    this.taggerCountdownText.destroy();
-                }, 2000);
+        client.on('timerEnd', () => { // 타이머가 종료
+            if (!this.timerFlag) {
+                if (this.taggerCountdownText) {
+                    this.taggerCountdownText.setText('Time\'s up!');
+                    setTimeout(() => {
+                        this.taggerCountdownText.destroy();
+                        this.timerFlag = true;
+                    }, 1000);
+                }
+            } else {
+                if (this.gameCountdownText) {
+                    this.gameCountdownText.setText('Time\'s up!');
+                    setTimeout(() => {
+                        this.gameCountdownText.destroy();
+                    }, 1000);
+                    // 타이머가 종료되면서 게임이 종료됨.
+                    if (this.playerIndex ===2 ) {
+                        this.myScore = 0;
+                    } else if (!this.isDead) { // 게임이 끝날때까지 죽지 않은 경우,
+                        console.log("마지막까지 생존함.");
+                        this.myScore = 180000;
+                    }
+                    this.showGameEndText()
+                }
             }
         });
 
         client.on('gameover', () => {
-            // this.time.delayedCall(5000, () => { // 5000ms = 5초
-            //     this.changeScene(); // 씬 전환
-            // }, [], this);
-            this.changeScene();
+            // 술래가 모두 잡아서 게임이 종료됨.
+            if (this.playerIndex == 2) {
+                this.myScore = 180000;
+                console.log("나의 스코어는: ", this.myScore);
+            }
+            this.showGameEndText()
         })
 
         client.on('playerOut', (data) => {
@@ -402,6 +455,9 @@ export class Game extends Scene {
             console.log(`${this.currentPlayerId}의 화면에서 ${playerId}의 아웃이 처리됨.`); 
 
             if (this.currentPlayerId == playerId) {
+                // 아웃된 사람이 나일때,
+                this.myScore = this.nowTime;
+                console.log("나의 스코어는: ", this.myScore);
                 this.isDead = true;
                 this.isFrozen = true;
                 // this.player.anims.stop();
@@ -627,7 +683,7 @@ export class Game extends Scene {
         this.endText.setScrollFactor(0);
 
         // 필요하다면 씬 전환이나 다른 로직 수행도 가능
-        this.time.delayedCall(2000, () => { this.changeScene(); });
+        this.time.delayedCall(3000, () => { this.changeScene(); });
     }
     
 
