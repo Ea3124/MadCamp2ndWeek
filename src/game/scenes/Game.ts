@@ -687,10 +687,12 @@ export class Game extends Scene {
             height / 2,
             'Game end!',
             {
-                fontSize: '40px',
-                color: '#ff0000',
+                fontFamily: 'Arial Black',
+                fontSize: '64px',
+                color: '#FFFFFF',
                 fontStyle: 'bold',
-                backgroundColor: '#000000'
+                stroke: '#000000',
+                strokeThickness: 4, 
             }
         )
         .setOrigin(0.5)
