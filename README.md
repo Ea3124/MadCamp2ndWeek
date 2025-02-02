@@ -1,235 +1,173 @@
-# Phaser Svelte Template
+# 🧊 얼음, 땡 !
 
-This is a Phaser 3 project template that uses the Svelte framework, TypeScript and Vite for bundling. It includes a bridge for Svelte to Phaser game communication, hot-reloading for quick development workflow and scripts to generate production-ready builds.
+<!--배지-->
+![Repository Size][repository-size-shield]
 
-### Versions
+<!--프로젝트 대문 이미지-->
+<img src="readme_images/intro.png" width="500">
 
-This template has been updated for:
 
-- [Phaser 3.87.0](https://github.com/phaserjs/phaser)
-- [Svelte 4.2.17](https://github.com/sveltejs/kit)
-- [Vite 5.2.11](https://github.com/vitejs/vite)
-- [TypeScript 5.4.5](https://github.com/microsoft/TypeScript)
 
-![screenshot](screenshot.png)
 
-## Requirements
+# [1] About the Project
 
-[Node.js](https://nodejs.org) is required to install dependencies and run scripts via `npm`.
+- **몰입캠프 2주차 프로젝트**
+- Phaser를 사용하여 Typescript기반의 웹 게임 제작해보기
 
-## Available Commands
+## Features
+- 보통 Unity3D로 게임 작업을 하는 것과는 다르게, 웹 상으로 구동이 가능하다.
 
-| Command | Description |
-|---------|-------------|
-| `npm install` | Install project dependencies |
-| `npm run dev` | Launch a development web server |
-| `npm run build` | Create a production build in the `build` folder |
-| `npm run dev-nolog` | Launch a development web server without sending anonymous data (see "About log.js" below) |
-| `npm run build-nolog` | Create a production build in the `dist` folder without sending anonymous data (see "About log.js" below) |
+- 4명에서 즐길수 있는 2d 도트 게임을 제작했으며, 맵을 제외한 모든 픽셀 그림들은 직접 제작하여 사용했다.
 
-## Writing Code
+## Technologies
 
-After cloning the repo, run `npm install` from your project directory. Then, you can start the local development server by running `npm run dev`.
+- [Phaser](https://phaser.io/) 3.87.0
+- [Svelte](https://svelte.dev/) 4.2.17
+- [Vite](https://vite.dev/) 5.2.11
+- [Typescript](https://www.typescriptlang.org/) 5.4.5
+- [Express.js](https://expressjs.com/) 4.21.2
+- [PostgreSQL](https://www.postgresql.org/) 8.13.1
 
-The local development server runs on `http://localhost:8080` by default. Please see the Vite documentation if you wish to change this, or add SSL support.
 
-Once the server is running you can edit any of the files in the `src` folder. Vite will automatically recompile your code and then reload the browser.
+# [2] Getting Started
 
-## Template Project Structure
+## Prerequisites
+1. Node.js가 설치되어 있지 않다면, 먼저 설치하세요.
 
-We have provided a default project structure to get you started. This is as follows:
+- [Node.js 공식 사이트](https://nodejs.org/)
+- **권장 버전**: 최신 LTS 버전
 
-- `src` - Contains the Svelte source code.
-- `src/app.html` - The html Svelte container.
-- `src/app.d.ts` - Global TypeScript declarations, provide types information.
-- `src/routes/+layout.svelte` - Svelte layout component. Here, the page title and the global styles are defined.
-- `src/+page.svelte` - Svelte page that integrates the functionality of the game created with Phaser.
-- `src/game` - Contains the game source code.
-- `src/game/PhaserGame.svelte` - The Svelte component that initializes the Phaser Game and serve like a bridge between Svelte and Phaser.
+설치 여부 확인:
 
-- `src/game/EventBus.ts` - A simple event bus to communicate between Svelte and Phaser.
-- `src/game/main.ts` - The main **game** entry point. This contains the game configuration and start the game.
-- `src/game/scenes/` - The Phaser Scenes are in this folder.
-- `static/assets` - Contains the static assets used by the game.
-
-## Svelte Bridge
-
-The `PhaserGame.svelte` component is the bridge between Svelte and Phaser. It initializes the Phaser game and passes events between the two.
-
-To communicate between Svelte and Phaser, you can use the **EventBus.ts** file. This is a simple event bus that allows you to emit and listen for events from both Svelte and Phaser.
-
-```js
-// In Svelte
-import { EventBus } from './EventBus';
-
-// Emit an event
-EventBus.emit('event-name', data);
-
-// In Phaser
-// Listen for an event
-EventBus.on('event-name', (data) => {
-    // Do something with the data
-});
+```sh
+node -v
+npm -v
 ```
 
-In addition to this, the `PhaserGame` component exposes the Phaser game instance along with the most recently active Phaser Scene. You can pick these up from Svelte via `phaserRef prop`.
+## Installation
 
-Once exposed, you can access them like any regular reference.
-
-## Phaser Scene Handling
-
-In Phaser, the Scene is the lifeblood of your game. It is where you sprites, game logic and all of the Phaser systems live. You can also have multiple scenes running at the same time. This template provides a way to obtain the current active scene from Svelte.
-
-You can get the current Phaser Scene from the component event `"current-active-scene"`. In order to do this, you need to emit the event `"current-scene-ready"` from the Phaser Scene class. This event should be emitted when the scene is ready to be used. You can see this done in all of the Scenes in our template.
-
-**Important**: When you add a new Scene to your game, make sure you expose to Svelte by emitting the `"current-scene-ready"` event via the `EventBus`, like this:
-
-
-```js
-class MyScene extends Phaser.Scene
-{
-    constructor ()
-    {
-        super('MyScene');
-    }
-
-    create ()
-    {
-        // Your Game Objects and logic here
-
-        // At the end of create method:
-        EventBus.emit('current-scene-ready', this);
-    }
-}
-```
-
-You don't have to emit this event if you don't need to access the specific scene from Svelte. Also, you don't have to emit it at the end of `create`, you can emit it at any point. For example, should your Scene be waiting for a network request or API call to complete, it could emit the event once that data is ready.
-
-### Svelte Component Example
-
-Here's an example of how to access Phaser data for use in a Svelte Component:
-
-```js
-// In a parent component
-<script lang="ts">
-    import type { Scene } from "phaser";
-    import PhaserGame, { type TPhaserRef } from "game/PhaserGame.svelte"; // We provide the type TPhaserRef but this route is an example. You should use the correct path to the PhaserGame component.
-
-    let phaserRef: TPhaserRef = { game: null, scene: null};
-
-    const onCurrentActiveScene = (scene) => {
-        
-        // This is invoked
-
-    }
-
-</script>
-
-<PhaserGame phaserRef={phaserRef} currentActiveScene={onCurrentActiveScene} />
-```
-
-In the code above, you can get a reference to the current Phaser Game instance and the current Scene by creating a reference with a variable `let phaserRef` and assign to PhaserGame component.
-
-From this reference, the game instance is available via `phaserRef.game` and the most recently active Scene via `phaserRef.scene`.
-
-The `onCurrentActiveScene` callback will also be invoked whenever the the Phaser Scene changes, as long as you emit the event via the EventBus, as outlined above.
-
-## Handling Assets
-
-To load your static games files such as audio files, images, videos, etc place them into the `static/assets` folder. Then you can use this path in the Loader calls within Phaser:
-
-```js
-preload ()
-{
-    //  This is an example of loading a static image
-    //  from the static/assets folder:
-    this.load.image('background', 'assets/bg.png');
-}
-```
-
-When you issue the `npm run build` command, all static assets are automatically copied to the `build/assets` folder.
-
-## Deploying to Production
-
-After you run the `npm run build` command, your code will be built into a single bundle and saved to the `build` folder, along with any other assets your project imported, or stored in the public assets folder.
-
-In order to deploy your game, you will need to upload *all* of the contents of the `build` folder to a public facing web server.
-
-## Customizing the Template
-
-### Vite
-
-If you want to customize your build, such as adding plugin (i.e. for loading CSS or fonts), you can modify the `vite/config.*.mjs` file for cross-project changes, or you can modify and/or create new configuration files and target them in specific npm tasks inside of `package.json`. Please see the [Vite documentation](https://vitejs.dev/) for more information.
-
-## Warning
-
-Normally, SvelteKit renders your page on the server first and sends that HTML to the client where it's hydrated. If you set ssr to false, it renders an empty 'shell' page instead. This is useful if your page is unable to be rendered on the server (because you use browser-only globals like document for example).
-
-Phaser needs to run on the client, therefore in the file `src/routes/+layout.js` we have added the line:
-```javascript
-export const ssr = false;
-```
-Please do not modify this line unless you know what you are doing and can resolve all related issues with SSR.
-
-## About log.js
-
-If you inspect our node scripts you will see there is a file called `log.js`. This file makes a single silent API call to a domain called `gryzor.co`. This domain is owned by Phaser Studio Inc. The domain name is a homage to one of our favorite retro games.
-
-We send the following 3 pieces of data to this API: The name of the template being used (vue, react, etc). If the build was 'dev' or 'prod' and finally the version of Phaser being used.
-
-At no point is any personal data collected or sent. We don't know about your project files, device, browser or anything else. Feel free to inspect the `log.js` file to confirm this.
-
-Why do we do this? Because being open source means we have no visible metrics about which of our templates are being used. We work hard to maintain a large and diverse set of templates for Phaser developers and this is our small anonymous way to determine if that work is actually paying off, or not. In short, it helps us ensure we're building the tools for you.
-
-However, if you don't want to send any data, you can use these commands instead:
-
-Dev:
-
+1. Repository 클론
 ```bash
-npm run dev-nolog
+git clone https://https://github.com/Ea3124/MadCamp2ndWeek
 ```
 
-Build:
+<br><br>
 
-```bash
-npm run build-nolog
+2. 프로젝트 의존성 설치
+
+프로젝트의 `package.json`에 정의된 패키지를 설치합니다.
+
+```sh
+npm install
+```
+<br><br>
+
+3. 데이터베이스 마이그레이션
+PostgreSQL을 사용하며, 데이터베이스 마이그레이션을 적용하려면 다음 명령어를 실행하세요.
+```sh
+npm run migrate
 ```
 
-Or, to disable the log entirely, simply delete the file `log.js` and remove the call to it in the `scripts` section of `package.json`:
+<br><br>
 
-Before:
+## Configuration
 
-```json
-"scripts": {
-    "dev": "node log.js dev & dev-template-script",
-    "build": "node log.js build & build-template-script"
-},
-```
+- nothing for configuration
 
-After:
 
-```json
-"scripts": {
-    "dev": "dev-template-script",
-    "build": "build-template-script"
-},
-```
+# [3] 게임 소개
 
-Either of these will stop `log.js` from running. If you do decide to do this, please could you at least join our Discord and tell us which template you're using! Or send us a quick email. Either will be super-helpful, thank you.
+<aside>
 
-## Join the Phaser Community!
+### 🧊 감성돋는 픽셀 인트로
 
-We love to see what developers like you create with Phaser! It really motivates us to keep improving. So please join our community and show-off your work 😄
+</aside>
 
-**Visit:** The [Phaser website](https://phaser.io) and follow on [Phaser Twitter](https://twitter.com/phaser_)<br />
-**Play:** Some of the amazing games [#madewithphaser](https://twitter.com/search?q=%23madewithphaser&src=typed_query&f=live)<br />
-**Learn:** [API Docs](https://newdocs.phaser.io), [Support Forum](https://phaser.discourse.group/) and [StackOverflow](https://stackoverflow.com/questions/tagged/phaser-framework)<br />
-**Discord:** Join us on [Discord](https://discord.gg/phaser)<br />
-**Code:** 2000+ [Examples](https://labs.phaser.io)<br />
-**Read:** The [Phaser World](https://phaser.io/community/newsletter) Newsletter<br />
+![main.gif](readme_images/main.gif)
 
-Created by [Phaser Studio](mailto:support@phaser.io). Powered by coffee, anime, pixels and love.
+- **인터랙티브 버튼**: 마우스 오버 및 클릭 시 시각적 효과 제공.
+- **닉네임 입력 시스템**: 클릭 및 키보드 입력을 통한 사용자 닉네임 설정.
+- **실시간 타이틀 애니메이션**: 마우스 움직임에 따라 로고가 부드럽게 기울어지는 효과.
+- **씬 간 데이터 전달**: 닉네임 및 방 정보를 다음 씬으로 전달하여 원활한 사용자 경험 제공.
 
-The Phaser logo and characters are &copy; 2011 - 2024 Phaser Studio Inc.
+<aside>
 
-All rights reserved.
+### 🧊 다같이 게임해요! - Create Game
+
+</aside>
+
+![create.gif](readme_images/create.gif)
+
+<img src="readme_images/tilemap1.png" width="350">
+Map1
+
+<img src="readme_images/tilemap2.png" width="350">
+Map2
+
+<img src="readme_images/tilemap3.png" width="350">
+Map3
+
+- **입력 필드 인터랙션**: 방 이름과 비밀번호 입력 필드를 클릭하여 활성화하고, 키보드 입력을 통해 텍스트를 입력할 수 있습니다.
+- **맵 선택 시스템**: 사용자가 제공된 맵 목록 중에서 하나를 선택할 수 있으며, 선택된 맵은 시각적으로 강조됩니다.
+- **서버 통신 연동**: 방 생성 요청을 서버에 전송하고, 서버로부터의 응답을 처리하여 성공 시 `WaitingRoom` 씬으로 전환합니다.
+- **커스텀 폰트 적용**: `Rubik Pixels`와 `Jua` 폰트를 사용하여 텍스트의 시각적 스타일을 향상시킵니다.
+- **이벤트 버스 통신**: 씬 준비 완료를 다른 모듈에 알리기 위해 이벤트 버스를 사용합니다.
+
+<aside>
+
+### 🧊 다같이 게임해요! - Join Game
+
+</aside>
+
+![join.gif](readme_images/join.gif)
+
+- **방 목록 표시 및 관리**: 서버로부터 수신한 현재 활성화된 방 목록을 화면에 동적으로 표시하고, 실시간으로 업데이트합니다.
+- **방 선택 시스템**: 사용자가 원하는 방을 선택할 수 있으며, 선택된 방은 시각적으로 강조됩니다.
+- **비밀번호 보호 방 참가**: 비밀번호가 필요한 방을 선택할 경우, 비밀번호 입력 팝업을 통해 보안을 강화합니다.
+- **인터랙티브 버튼**: "Join Room!" 버튼 및 방 목록의 각 방 버튼에 마우스 오버 및 클릭 시 시각적 효과를 제공합니다.
+- **서버 통신 연동**: 방 목록 요청, 방 참가 요청 등을 서버에 전송하고, 서버로부터의 응답을 처리하여 성공 시 `WaitingRoom` 씬으로 전환합니다.
+- **이벤트 버스 활용**: 다른 모듈(Svelte 애플리케이션 등)과의 이벤트 통신을 통해 비밀번호 입력 팝업을 제어합니다.
+
+<aside>
+
+### 🧊 맵에서 자유롭게, 모두 다같이  놀기 -Game
+
+</aside>
+
+![play.gif](readme_images/play.gif)
+
+- **실시간 멀티플레이어 관리**: 서버와의 실시간 통신을 통해 여러 플레이어가 동시에 게임에 참여하고 상호작용할 수 있습니다.
+- **플레이어 상태 관리**: 플레이어의 움직임, 얼음 상태, 탈락 상태 등을 관리하여 게임의 흐름을 제어합니다.
+- **타이머 및 게임 진행 관리**: 게임 시작 시 오버레이를 표시하고, 술래의 움직임 제한과 전체 게임 타이머를 관리합니다.
+- **입력 및 움직임 처리**: 키보드 입력을 통해 플레이어의 움직임을 제어하고, 서버와의 동기화를 통해 다른 플레이어의 움직임을 반영합니다.
+- **충돌 및 상호작용 처리**: 플레이어 간의 충돌을 감지하고, 서버에 관련 이벤트를 전송하여 게임 로직을 유지합니다.
+- **사용자 인터페이스 오버레이**: 게임 시작과 종료 시 어둑한 배경과 텍스트를 통해 사용자에게 현재 상태를 시각적으로 전달합니다.
+- **서버와의 데이터 동기화**: 플레이어의 위치, 상태 변경, 게임 진행 상황 등을 서버와 주고받으며 일관된 게임 상태를 유지합니다.
+
+<aside>
+
+### 🧊 게임 끝! 나의 랭킹은?
+
+</aside>
+
+![final.gif](readme_images/final.gif)
+
+- **랭킹 보드 표시**: 서버에서 가져온 사용자 데이터를 기반으로 상위 10명의 플레이어 랭킹을 화면에 표시합니다.
+- **데이터 정렬 및 표시**: 점수를 기준으로 데이터를 정렬하고, 시각적으로 명확하게 랭킹 정보를 제공합니다.
+
+---
+
+
+
+
+# [4] Team Introduce
+
+|Backend & UI|Backend & Design|
+|:---:|:---:|
+| <img src="https://github.com/Ea3124.png" width="120"> | <img src="https://github.com/jieon814.png" width="120"> |
+|[이승재](https://github.com/Ea3124)|[안지언](https://github.com/jieon814)|
+|leesj6717@gmail.com| maria6645@naver.com |
+
+ 
+<!--Url for Badges-->
+[repository-size-shield]: https://img.shields.io/github/repo-size/Ea3124/MadCamp2ndWeek?labelColor=D8D8D8&color=BE81F7
