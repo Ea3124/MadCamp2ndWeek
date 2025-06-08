@@ -7,6 +7,16 @@
 <img src="readme_images/intro.png" width="500">
 
 
+## 📦 버전 기록 (Changelog)
+
+#### v1.1.0 (2025-06-09)
+- PostgreSQL 연결 설정 개선
+- Docker 환경에서 동작하게끔 변경
+- api 주소 .env로 이전
+
+#### v1.0.0 (2025-01-01)
+- 기본 4인 멀티 게임 구축 완료
+
 
 
 # [1] About the Project
@@ -19,7 +29,7 @@
 
 - 4명에서 즐길수 있는 2d 도트 게임을 제작했으며, 맵을 제외한 모든 픽셀 그림들은 직접 제작하여 사용했다.
 
-## Technologies
+## Tech Stack
 
 - [Phaser](https://phaser.io/) 3.87.0
 - [Svelte](https://svelte.dev/) 4.2.17
@@ -31,44 +41,20 @@
 
 # [2] Getting Started
 
-## Prerequisites
-1. Node.js가 설치되어 있지 않다면, 먼저 설치하세요.
-
-- [Node.js 공식 사이트](https://nodejs.org/)
-- **권장 버전**: 최신 LTS 버전
-
-설치 여부 확인:
-
-```sh
-node -v
-npm -v
-```
 
 ## Installation
 
-1. Repository 클론
 ```bash
 git clone https://https://github.com/Ea3124/MadCamp2ndWeek
+
+# 시작
+$ docker-compose up --build -d
+
+# 종료시
+$ docker compose down --volumes --remove-orphans
 ```
 
-<br><br>
-
-2. 프로젝트 의존성 설치
-
-프로젝트의 `package.json`에 정의된 패키지를 설치합니다.
-
-```sh
-npm install
-```
-<br><br>
-
-3. 데이터베이스 마이그레이션
-PostgreSQL을 사용하며, 데이터베이스 마이그레이션을 적용하려면 다음 명령어를 실행하세요.
-```sh
-npm run migrate
-```
-
-<br><br>
+- Docker Compose version v2.35.1-desktop.1
 
 ## Configuration
 
@@ -162,7 +148,7 @@ Map3
 
 # [4] Team Introduce
 
-|Backend & UI|Backend & Design|
+|Backend & UI|Backend & Map Design|
 |:---:|:---:|
 | <img src="https://github.com/Ea3124.png" width="120"> | <img src="https://github.com/jieon814.png" width="120"> |
 |[이승재](https://github.com/Ea3124)|[안지언](https://github.com/jieon814)|

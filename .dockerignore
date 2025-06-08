@@ -1,0 +1,36 @@
+# Git 및 버전 관리 관련
+.git
+.gitignore
+
+# Node 모듈 (용량 큼, 컨테이너 안에서 설치함)
+node_modules
+**/node_modules
+
+# 로컬 환경 설정 파일
+.env
+.env.local
+.vscode
+.idea
+
+# 로그, 캐시 등
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+*.log
+
+# OS 및 빌드 툴 생성 파일
+.DS_Store
+Thumbs.db
+
+# 읽기 전용 문서 및 이미지들 (빌드엔 필요 없음)
+readme_images/
+screenshot.png
+LICENSE
+README.md
+
+# 빌드 결과물 (배포 시에는 따로 다룸)
+dist/
+build/
+
+node_modules/
+package-lock.json

@@ -4,6 +4,7 @@ import { GameObjects, Scene } from 'phaser';
 import { EventBus } from '../EventBus';
 import Phaser from 'phaser';
 import { client } from '../socket';  // socket.ts에서 import
+import { API } from '../../lib/api';
 
 export class Game extends Scene {
     
@@ -127,7 +128,7 @@ export class Game extends Scene {
 
 
         
-        fetch('http://172.10.7.17:3000/api/users', {
+        fetch(API.users, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -709,7 +710,7 @@ export class Game extends Scene {
         this.endText.setScrollFactor(0);
         
 
-        await fetch('http://172.10.7.17:3000/api/users/score', {
+        await fetch(API.userScore, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

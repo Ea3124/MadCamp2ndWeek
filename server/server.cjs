@@ -1,120 +1,103 @@
-// server/server.cjs
-require('dotenv').config(); // dotenv 불러오기
-const { default: e } = require('express');
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
-
-// 1) pg 모듈에서 Pool 가져오기
+const cors = require('cors');
 const { Pool } = require('pg');
+const socketIo = require('socket.io');
 
 const app = express();
-const port = 3000; // 예시
+app.use(cors());
+app.use(express.json());
 
-const cors = require('cors');
-app.use(cors()); // 기본 모드로 모든 origin 허용
+// PostgreSQL 연결 재시도 함수
+async function waitForPostgres(retries = 5, delay = 3000) {
+  for (let i = 1; i <= retries; i++) {
+    try {
+      const pool = new Pool({
+        host: 'db',
+        port: process.env.POSTGRES_PORT || 5432,
+        user: process.env.POSTGRES_USER || 'postgres',
+        password: process.env.POSTGRES_PASSWORD || 'password',
+        database: process.env.POSTGRES_DB || 'mydb'
+      });
 
-app.use(express.json());  // 여기서 미들웨어 등록
-
-// 2) Pool 인스턴스 생성
-const pool = new Pool({
-  host: process.env.POSTGRES_HOST,     // localhost
-  port: process.env.POSTGRES_PORT,     // 5432
-  user: process.env.POSTGRES_USER,     // test
-  password: process.env.POSTGRES_PASSWORD, // mysecretpassword
-  database: process.env.POSTGRES_DB    // mydb
-});
-
-// 3) DB 연결 테스트 (선택)
-pool.connect((err, client, release) => {
-  if (err) {
-    return console.error('PostgreSQL 연결 에러:', err);
-  }
-  console.log('PostgreSQL 연결 성공!');
-  release();
-});
-
-// 4) API 라우터 예시
-app.get('/api/users', async (req, res) => {
-  try {
-    // 쿼리 예시: users 테이블에서 모든 행 가져오기
-    const result = await pool.query('SELECT * FROM users');
-    res.json(result.rows);
-  } catch (error) {
-    console.error('쿼리 실행 에러:', error);
-    res.status(500).json({ error: 'DB 에러' });
-  }
-});
-
-app.post('/api/users', async (req, res) => {
-  try {
-    const { id, nickname, score } = req.body; 
-    // 각 값이 제대로 넘어오는지 확인해보세요.
-
-    // users 테이블: (id VARCHAR(50) PRIMARY KEY, nickname VARCHAR(100), score INT, created_at ...)
-    const query = `
-      INSERT INTO users (id, nickname, score) 
-      VALUES ($1, $2, $3)
-      ON CONFLICT (id) DO NOTHING
-      -- ON CONFLICT (id) DO NOTHING:
-      -- 이미 같은 id가 있으면 그냥 무시 (중복 삽입 에러 방지)
-    `;
-    await pool.query(query, [id, nickname, score]);
-
-    // 성공 응답
-    return res.status(200).json({ success: true, message: 'User inserted or already exists' });
-  } catch (error) {
-    console.error('쿼리 실행 에러:', error);
-    res.status(500).json({ error: 'DB 에러' });
-  }
-});
-
-// server/server.cjs
-
-app.patch('/api/users/score', async (req, res) => {
-  try {
-    const { id, score } = req.body;
-    if (!id || typeof score !== 'number') {
-      return res.status(400).json({ error: 'id와 score(number)가 필요합니다.' });
+      await pool.query('SELECT 1'); // 연결 테스트
+      console.log('✅ PostgreSQL 연결 성공!');
+      return pool;
+    } catch (err) {
+      console.log(`🔄 PostgreSQL 연결 재시도 (${i}/${retries})...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
+  }
+  throw new Error('❌ PostgreSQL 연결 실패: 재시도 모두 실패함.');
+}
 
-    const query = `
-      UPDATE users
-      SET score = $1
-      WHERE id = $2
-      RETURNING *;
-    `;
-    const result = await pool.query(query, [score, id]);
+// 서버 및 소켓 초기화
+(async () => {
+  try {
+    const pool = await waitForPostgres();
 
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: '해당 id의 사용자 없음' });
-    }
-
-    res.status(200).json({ 
-      success: true, 
-      updatedUser: result.rows[0] 
+    // 라우터 예시
+    app.get('/api/users', async (req, res) => {
+      try {
+        const result = await pool.query('SELECT * FROM users');
+        res.json(result.rows);
+      } catch (error) {
+        console.error('쿼리 실행 에러:', error);
+        res.status(500).json({ error: 'DB 에러' });
+      }
     });
 
-  } catch (error) {
-    console.error('score 업데이트 에러:', error);
-    res.status(500).json({ error: 'DB 에러' });
-  }
-});
+    app.post('/api/users', async (req, res) => {
+      try {
+        const { id, nickname, score } = req.body;
+        const query = `
+          INSERT INTO users (id, nickname, score) 
+          VALUES ($1, $2, $3)
+          ON CONFLICT (id) DO NOTHING
+        `;
+        await pool.query(query, [id, nickname, score]);
+        res.status(200).json({ success: true });
+      } catch (error) {
+        console.error('쿼리 실행 에러:', error);
+        res.status(500).json({ error: 'DB 에러' });
+      }
+    });
 
+    app.patch('/api/users/score', async (req, res) => {
+      try {
+        const { id, score } = req.body;
+        const result = await pool.query(
+          'UPDATE users SET score = $1 WHERE id = $2 RETURNING *',
+          [score, id]
+        );
 
-const server = http.createServer(app);
-const io = require('socket.io')(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  }
-});
+        if (result.rowCount === 0) {
+          return res.status(404).json({ error: '사용자 없음' });
+        }
 
-//정적 파일 또는 라우팅 설정
-app.get('/', (req, res) => {
-  res.send('Hello MMO');
-});
+        res.json({ success: true, updatedUser: result.rows[0] });
+      } catch (error) {
+        console.error('score 업데이트 에러:', error);
+        res.status(500).json({ error: 'DB 에러' });
+      }
+    });
 
-// 플레이어와 방 정보를 저장 -> 이때 플레이어에 roomId를 부여해서 같은 방에 참여한 애들을 구분할 수 있게함.
+    app.get('/', (req, res) => {
+      res.send('Hello MMO');
+    });
+
+    const server = http.createServer(app);
+    const io = socketIo(server, {
+      cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+      }
+    });
+
+    // socket.io 이벤트 핸들링은 여기에 붙이세요
+
+    // 플레이어와 방 정보를 저장 -> 이때 플레이어에 roomId를 부여해서 같은 방에 참여한 애들을 구분할 수 있게함.
 let players = {}; // { socketId: {x, y, roomDetails, nickname}, .. }  socketId를 key로, x, y, roomDetails, nickname을 value로
 // 이때, roomDetails = [roomName, playerIndex, frozen, isDead] 배열
 let rooms = {}; // {roomName: { map, password, player, aliveNum}}
@@ -205,17 +188,12 @@ function startTimer(data) {
   }, 1000);
   roomTimers[roomName].intervalId = intervalId; // intervalId 저장
 }
+    io.on('connection', (socket) => {
+      console.log('🟢 New socket connection:', socket.id);
+      socket.emit('yourId', socket.id);
+      // ... 나머지 socket 관련 로직
 
-
-
-io.on('connection', (socket) => {
-  console.log('[io.on(connection)] A new user connected: ', socket.id);
-  
-  // 클라이언트에게 본인의 socket.id 알려줌
-  socket.emit('yourId', socket.id);
-  
-
-  // *** 클라이언트로부터 받은 'newplayer' 이벤트 처리 ***
+      // *** 클라이언트로부터 받은 'newplayer' 이벤트 처리 ***
   socket.on('newplayer', (data) => {
 
     const { nickname } = data || {}; // data 객체에서 nickname 속성 추출 (즉, data.nickname)
@@ -686,11 +664,14 @@ io.on('connection', (socket) => {
     players[socket.id].x = data.x;
     players[socket.id].y = data.y;
   });
-  
+    });
 
-});
+    server.listen(3000, '0.0.0.0', () => {
+      console.log('🚀 서버 실행 중: http://0.0.0.0:3000');
+    });
 
-server.listen(3000, '0.0.0.0', () => {
-  console.log('listening on http://localhost:3000'); 
-
-});
+  } catch (err) {
+    console.error(err.message);
+    process.exit(1); // 치명적 실패 시 종료
+  }
+})();

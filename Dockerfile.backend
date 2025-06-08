@@ -1,0 +1,19 @@
+# Dockerfile.backend
+FROM node:20
+
+WORKDIR /app
+
+# 루트의 package.json 사용
+COPY package*.json ./
+RUN npm install
+
+
+# 전체 프로젝트 복사
+COPY . .
+
+# entrypoint.sh 복사
+COPY ./server/entrypoint.sh /usr/src/app/entrypoint.sh
+RUN chmod +x /usr/src/app/entrypoint.sh
+
+# entrypoint 지정
+ENTRYPOINT ["/usr/src/app/entrypoint.sh"]

@@ -20,12 +20,13 @@
         "vite"
     ],
     "scripts": {
-        "dev": "node log.js dev & vite --config vite/config.dev.mjs",
+        "dev": "node log.js dev & vite --config vite/config.dev.mjs --host 0.0.0.0",
         "build": "node log.js build & vite build --config vite/config.prod.mjs",
         "dev-nolog": "vite --config vite/config.dev.mjs",
         "build-nolog": "vite build --config vite/config.prod.mjs",
         "preview": "vite preview --outDir build",
-        "migrate": "node server/migration.cjs"
+        "migrate": "node server/migration.cjs",
+        "start": "node server/server.cjs"
     },
     "devDependencies": {
         "@sveltejs/adapter-auto": "^3.2.0",
@@ -33,13 +34,14 @@
         "@sveltejs/kit": "^2.5.8",
         "@sveltejs/vite-plugin-svelte": "^3.1.0",
         "@types/pg": "^8.11.10",
+        "rollup": "^4.42.0",
         "svelte": "^4.2.17",
         "svelte-check": "^4.0.2",
         "terser": "^5.31.0",
         "ts-node-dev": "^2.0.0",
         "tslib": "^2.6.2",
         "typescript": "^5.4.5",
-        "vite": "^5.2.11"
+        "vite": "^5.4.19"
     },
     "type": "module",
     "dependencies": {
@@ -51,5 +53,8 @@
         "phaser-matter-collision-plugin": "^1.0.0",
         "socket.io": "^4.8.1",
         "socket.io-client": "^4.8.1"
+    },
+    "optionalDependencies": {
+        "@rollup/rollup-linux-arm64-gnu": "^4.42.0"
     }
 }

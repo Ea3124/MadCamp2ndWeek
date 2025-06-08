@@ -1,5 +1,6 @@
 // src/game/socket.ts
 import { io, Socket } from 'socket.io-client';
+import { SOCKET_URL } from '../lib/api';
 
 // 모듈 확장 선언
 declare module 'socket.io-client' {
@@ -9,7 +10,7 @@ declare module 'socket.io-client' {
 }
 
 // 클라이언트 생성
-export const client: Socket = io('http://172.10.7.14:3000/');
+export const client: Socket = io(SOCKET_URL);
 
 // 커스텀 메서드 구현
 client.askNewPlayer = () => {

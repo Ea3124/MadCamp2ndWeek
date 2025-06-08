@@ -1,5 +1,6 @@
 import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
+import { API } from '../../lib/api';
 
 export class GameOver extends Scene
 {
@@ -54,7 +55,7 @@ export class GameOver extends Scene
     .setDepth(100);
 
     // 5) 서버의 /api/users 엔드포인트로 GET 요청
-    fetch('http://172.10.7.17:3000/api/users')
+    fetch(API.users)
     .then((res) => res.json())
     .then((data) => {
         console.log('서버로부터 받은 데이터:', data);
