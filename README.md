@@ -47,6 +47,9 @@
 ```bash
 git clone https://https://github.com/Ea3124/MadCamp2ndWeek
 
+# .env.sample -> .env로 변경 후 내부 내용 수정
+
+
 # 시작
 $ docker-compose up --build -d
 
